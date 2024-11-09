@@ -1,0 +1,42 @@
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+.modal-content {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  width: 520px;
+  height: 170px;
+  max-height: 170px;
+  max-width: 520px;
+  position: relative;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  text-align: left;
+}
+
+/* Nút đóng modal */
+.close-button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 24px;
+  color: #333;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+/* Nội dung và hành động của modal trong cùng một hàng */
+.modal-body {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}

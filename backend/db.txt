@@ -1,0 +1,80 @@
+CREATE TABLE User (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE
+);
+
+CREATE TABLE WorkSchedule (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    start_time DATETIME NOT NULL,
+    end_time DATETIME NOT NULL,
+    priority ENUM('low', 'medium', 'high') DEFAULT 'low',
+    notification_time INT, -- Thời gian trước khi công việc bắt đầu (phút)
+    is_canceled BOOLEAN DEFAULT FALSE,
+    FOREIGN KEY (user_id) REFERENCES User(id)
+);
+
+CREATE TABLE Notification (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    work_schedule_id INT NOT NULL,
+    user_id INT NOT NULL,
+    notification_time DATETIME NOT NULL,
+    message TEXT,
+    is_sent BOOLEAN DEFAULT FALSE,
+    FOREIGN KEY (work_schedule_id) REFERENCES WorkSchedule(id),
+    FOREIGN KEY (user_id) REFERENCES User(id)
+);
+
+
+CREATE TABLE Booking (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    work_schedule_id INT NOT NULL,
+    guest_name VARCHAR(255) NOT NULL,
+    guest_email VARCHAR(255) NOT NULL,
+    status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+    FOREIGN KEY (work_schedule_id) REFERENCES WorkSchedule(id)
+);
+
+CREATE TABLE PublicLink (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    link VARCHAR(255) NOT NULL UNIQUE,
+    FOREIGN KEY (user_id) REFERENCES User(id)
+);
+
+
+
+
+
+
+-- Chèn dữ liệu vào bảng User
+INSERT INTO User (name, password, email) VALUES
+('Nguyễn Tuấn Kiệt', '1234', 'nguyentuankietmd2003@gmail.com'),
+('Trần Thị B', 'mypassword', 'b@example.com');
+
+-- Chèn dữ liệu vào bảng WorkSchedule
+INSERT INTO WorkSchedule (user_id, title, description, start_time, end_time, priority, notification_time, is_canceled) VALUES
+(1, 'Họp nhóm', 'Họp để thảo luận về dự án mới.', '2024-10-20 10:00:00', '2024-10-20 11:00:00', 'medium', 30, FALSE),
+(2, 'Lịch khám bệnh', 'Khám sức khỏe định kỳ.', '2024-10-21 14:00:00', '2024-10-21 15:00:00', 'high', 60, FALSE);
+
+-- Chèn dữ liệu vào bảng Notification
+INSERT INTO Notification (work_schedule_id, user_id, notification_time, message) VALUES
+(1, 1, '2024-10-20 09:30:00', 'Nhắc nhở: Họp nhóm sắp bắt đầu.'),
+(2, 2, '2024-10-21 13:00:00', 'Nhắc nhở: Lịch khám bệnh sắp đến.');
+
+-- Chèn dữ liệu vào bảng Booking
+INSERT INTO Booking (work_schedule_id, guest_name, guest_email, status) VALUES
+(1, 'Lê Văn C', 'vc@example.com', 'pending'),
+(2, 'Phạm Thị D', 'td@example.com', 'approved');
+
+-- Chèn dữ liệu vào bảng PublicLink
+INSERT INTO PublicLink (user_id, link) VALUES
+(1, 'http://example.com/public-link-a'),
+(2, 'http://example.com/public-link-b');
+
+
+

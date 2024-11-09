@@ -1,0 +1,69 @@
+.register-container {
+  width: 520px;
+  height: 560px;
+  border: 1px solid black;
+  padding-left: 90.4px;
+  padding-right: 90.11px;
+  padding-top: 28.2px;
+  padding-bottom: 33px;
+  border-radius: 20px;
+}
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none; /* Ẩn spinner */
+  margin: 0; /* Đảm bảo không có khoảng cách */
+}
+
+.input-container {
+  border-radius: 30px;
+  border: 1px solid #000000;
+  height: 60px;
+  width: 340px;
+  box-sizing: border-box;
+  padding-top: 21px;
+  padding-bottom: 21px;
+  padding-left: 31px;
+  position: relative; /* Để đặt label đúng vị trí */
+}
+
+/* Nút submit */
+.submit-button {
+  height: 50px;
+  width: 160px;
+  border-radius: 30px;
+  border: 1px solid #000000;
+  box-sizing: border-box;
+  text-align: center;
+  box-shadow: 0 4px 4px rgba(0, 0, 0, 0.25);
+}
+
+.submit-button:hover {
+  background-color: #000000;
+  color: white;
+}
+
+/* Placeholder (label) */
+.placeholder {
+  position: absolute; /* Đặt vị trí tuyệt đối cho label (placeholder) */
+  left: 31px; /* Đặt khoảng cách từ bên trái, trùng với padding-left */
+  top: 21px; /* Đặt khoảng cách từ phía trên */
+  transition: all 0.2s; /* Thêm hiệu ứng chuyển tiếp cho các thay đổi vị trí */
+  color: #000000; /* Màu chữ cho placeholder */
+  pointer-events: none; /* Ngăn chặn sự kiện cho placeholder */
+  font-weight: bold;
+}
+
+/* Khi input có focus hoặc không rỗng, dịch chuyển placeholder lên trên */
+.input-field:focus + .placeholder,
+.input-field:not(:placeholder-shown) + .placeholder {
+  top: 3px; /* Dịch chuyển label lên trên */
+  font-size: 10px; /* Giảm kích thước chữ */
+  color: #000000; /* Đổi màu chữ khi focus */
+}
+
+/* Input field */
+.input-field {
+  padding: 0; /* Xóa padding bên trong input để đảm bảo có thể nhìn thấy placeholder */
+  border: none; /* Xóa viền mặc định của input */
+  outline: none; /* Xóa outline khi focus vào input */
+}

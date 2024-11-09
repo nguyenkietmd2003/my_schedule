@@ -1,0 +1,178 @@
+.schedule {
+  background-color: #f03838;
+  color: #fff;
+  padding: 5px;
+  border-radius: 4px;
+  font-size: 1em;
+  margin-top: 5px;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  height: 30px;
+}
+
+.form-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+/* Close Button */
+.schedule-form {
+  background: #fff;
+  width: 520px;
+  height: 681px;
+  border-radius: 10px;
+  /* padding: 20px; */
+}
+
+/* Importance Level */
+.importance-level {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.importance-options {
+  display: flex;
+  flex-direction: column;
+}
+
+.notification-checkbox {
+  display: flex;
+  align-items: center;
+  font-weight: bold;
+  color: #333;
+}
+
+/* Close Button */
+.close-form {
+  width: 100%;
+  height: 54px;
+  background-color: #cdcccc;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+  text-align: right;
+  padding-top: 10px;
+  margin-bottom: 48px;
+  color: #333;
+  cursor: pointer;
+  font-size: 20px;
+}
+
+.form-input {
+  padding-left: 32px;
+  padding-right: 43px;
+  display: flex;
+  flex-direction: column;
+}
+
+.form-input label {
+  display: flex;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+/* Title Input */
+.title-input {
+  font-size: 20px;
+}
+
+.title-input input {
+  border: 1px solid black;
+  border-radius: 8px;
+  height: 80px;
+  padding: 0 10px;
+  font-size: 16px;
+  width: 445px;
+}
+
+.time-input label {
+  font-size: 25px;
+}
+
+.high {
+  color: #ff5e5e;
+}
+
+.medium {
+  color: #f8c548;
+}
+
+.low {
+  color: #4caf50;
+}
+
+/* Submit Button */
+.button-form {
+  margin-top: 20px;
+  padding: 10px 20px;
+  font-size: 16px;
+  font-weight: bold;
+  border: none;
+  color: #3c6fcd;
+  border-radius: 8px;
+  cursor: pointer;
+}
+*/
+
+/* Additional Button Styles */
+.month-button {
+  padding-left: 10px;
+  padding-right: 10px;
+  padding-bottom: 10px;
+  font-size: 2.5em;
+  background: none;
+  border: none;
+  color: black;
+  cursor: pointer;
+}
+
+.previous {
+  margin-left: 366px;
+  margin-right: 50px;
+  font-size: 40px;
+}
+
+.next {
+  margin-left: 50px;
+  font-size: 40px;
+  margin-right: 105px;
+}
+.notification-success {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: rgba(0, 0, 0, 0.5); /* Đặt nền tối mờ */
+}
+
+.notification-success-content {
+  background-color: #4caf50;
+  color: white;
+  padding: 20px;
+  height: 20vh;
+  width: 20vw;
+  border-radius: 5px;
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+  text-align: center;
+}
+.pending {
+  background-color: #fbe660;
+}
+.approved {
+  background-color: #5ac420;
+}

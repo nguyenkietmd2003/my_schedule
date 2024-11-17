@@ -1,24 +1,28 @@
-import { useState } from "react"; // Nhập useState từ React
+import { useContext, useState } from "react"; // Nhập useState từ React
 import { Link, useNavigate } from "react-router-dom";
 import "./registerPage.css";
-import { registerAPI } from "../../util/api";
+import { sendOtp } from "../../util/api";
+import { AuthContext } from "../../context/wrapContext";
 
 const RegisterPage = () => {
   const [name, setName] = useState(""); // Trạng thái cho tên
   const [email, setEmail] = useState(""); // Trạng thái cho email
-  const [phone, setPhone] = useState(""); // Trạng thái cho số điện thoại
   const [password, setPassword] = useState(""); // Trạng thái cho mật khẩu
   const navigate = useNavigate();
+  const { setInfoRegister } = useContext(AuthContext);
   const focusPlaceholder = (inputId) => {
     document.querySelector(`#${inputId}`).focus();
   };
-  const register = async (name, password, email, phone) => {
+  const register = async (name, password, email) => {
     try {
-      const result = await registerAPI(name, password, email, phone);
-      // chua validate data
-      console.log(result);
-      if (result.status === 200) {
-        navigate("/");
+      const result = await sendOtp(email);
+      if (result.data.ER === 0 || result.data.ER === 1) {
+        setInfoRegister({
+          name,
+          email,
+          password,
+        });
+        navigate("/verify");
       }
     } catch (error) {
       console.log(error);
@@ -27,7 +31,7 @@ const RegisterPage = () => {
 
   const handleSubmit = (event) => {
     event.preventDefault();
-    register(name, password, email, phone);
+    register(name, password, email);
   };
 
   return (
@@ -70,22 +74,6 @@ const RegisterPage = () => {
           />
           <label htmlFor="email" className="placeholder">
             Email
-          </label>
-        </div>
-        <div
-          className="input-container mb-[24.65px]"
-          onClick={() => focusPlaceholder("phone")}
-        >
-          <input
-            type="number"
-            id="phone"
-            placeholder=""
-            className="input-field"
-            value={phone} // Liên kết với trạng thái
-            onChange={(e) => setPhone(e.target.value)} // Cập nhật trạng thái khi thay đổi
-          />
-          <label htmlFor="phone" className="placeholder">
-            Phone
           </label>
         </div>
         <div

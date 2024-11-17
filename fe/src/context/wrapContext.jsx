@@ -8,6 +8,11 @@ export const AuthContext = createContext({
     name: "",
   },
   appLoading: true,
+  infoRegister: {
+    email: "",
+    password: "",
+    name: "",
+  },
 });
 
 export const AuthWrapper = (props) => {
@@ -22,6 +27,11 @@ export const AuthWrapper = (props) => {
   //////////////////////////////////////////////////////////
   const [appLoading, setAppLoading] = useState(true);
   //
+  const [infoRegister, setInfoRegister] = useState({
+    email: "",
+    password: "",
+    name: "",
+  });
 
   ////////////////////////////////////////////////////
   return (
@@ -31,6 +41,8 @@ export const AuthWrapper = (props) => {
         setAuth,
         appLoading,
         setAppLoading,
+        infoRegister,
+        setInfoRegister,
       }}
     >
       {props.children}

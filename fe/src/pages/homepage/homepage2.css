@@ -54,6 +54,10 @@
   height: 50px;
   width: 200px;
 }
+.day.today {
+  font-weight: bold;
+  color: red;
+}
 
 /* Các ô khác vẫn giữ đường kẻ dưới */
 .day:not(.header-day):not(.first-row) {

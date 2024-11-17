@@ -6,6 +6,8 @@ import LoginPage from "./pages/loginPage/loginpage";
 import RegisterPage from "./pages/registerPage/registerPage";
 import SharedPage from "./pages/SharedPage/SharePage";
 import ProtectedRoute from "./util/protectedRoute.jsx";
+import VerifyPage from "./pages/verifyPage/verifyPage.jsx";
+import FreeTimeForm from "./pages/freeTimePage/freeTimePage.jsx";
 
 export const router = createBrowserRouter([
   {
@@ -14,6 +16,11 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <LoginPage /> },
       { path: "/register", element: <RegisterPage /> },
+      {
+        path: "/verify",
+        element: <VerifyPage />,
+      },
+      { path: "/freeTime", element: <FreeTimeForm /> },
     ],
   },
   {

@@ -4,9 +4,13 @@ export const loginAPI = (email, password) => {
   const URL_API = "v1/apiUser/login";
   return axios.post(URL_API, { email: email, password: password });
 };
-export const registerAPI = (name, password, email, phone) => {
-  const URL_API = "/v1/apiUser/register";
-  return axios.post(URL_API, { name, password, email, phone });
+export const sendOtp = (email) => {
+  const URL_API = "/v1/apiUser/send-otp";
+  return axios.post(URL_API, { email });
+};
+export const verifyOtp = (email, name, password, otp) => {
+  const URL_API = "/v1/apiUser/register2";
+  return axios.post(URL_API, { email, name, password, otp });
 };
 //
 export const getSchedule = (id) => {
@@ -56,4 +60,15 @@ export const rejectBooking = (id) => {
 export const getInfoUser = (user_id) => {
   const URL_API = `/v1/apiUser/get-info/${user_id}`;
   return axios.post(URL_API);
+};
+
+///---------------------------------------------------------------- v2
+export const createfreeTime = (data) => {
+  const URL_API = "/v1/apiFreeTime/create-freeTime";
+  return axios.post(URL_API, data);
+};
+
+export const getFreeTimeByUser = (user_id) => {
+  const URL_API = `/v1/apiFreeTime/get-freeTime-by-user`;
+  return axios.post(URL_API, { user_id: user_id });
 };

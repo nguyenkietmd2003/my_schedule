@@ -4,26 +4,22 @@ import "./homepage1.css";
 import "./form.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  faArrowAltCircleDown,
   faArrowAltCircleRight,
-  faBell,
   faCalendar,
   faCircleXmark,
-  faL,
   faSquareShareNodes,
-  faUserFriends,
 } from "@fortawesome/free-solid-svg-icons";
 import {
   acceptBooking,
   createSchedule,
   deleteSchedule,
   getBooking,
+  getFreeTimeByUser,
   getScheduleById,
   rejectBooking,
   shareLink,
   updateSchedule,
 } from "../../util/api";
-import { AuthContext } from "../../context/wrapContext";
 import { useNavigate } from "react-router-dom";
 
 const HomePage = () => {
@@ -48,6 +44,7 @@ const HomePage = () => {
     priority: "",
     notification_time: false,
   });
+  const [selectedTimeZone, setSelectedTimeZone] = useState("ITC");
   const [link, setLink] = useState("");
   const [isShowLink, setIsShowLink] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
@@ -58,7 +55,6 @@ const HomePage = () => {
   const [isModalBooking, setIsModalBooking] = useState(false);
   const [isModalPending, setIsModalPending] = useState(false);
   const [selectedBookings, setSelectedBookings] = useState(null);
-  const [isAppointmentMode, setIsAppointmentMode] = useState(true);
   const [apiSchedules, setApiSchedules] = useState([]);
   useEffect(() => {
     const getInfo = localStorage.getItem("info");
@@ -90,10 +86,28 @@ const HomePage = () => {
       }
     };
 
+    const fecthFreeTime = async () => {
+      try {
+        const response = await getFreeTimeByUser(user?.data?.user?.id);
+
+        // Dữ liệu API là một mảng, không cần phải truy cập message
+        const freeTimes = Array.isArray(response.data.message)
+          ? response.data.message
+          : [];
+
+        // Nếu cần, bạn có thể map dữ liệu để thêm type vào từng đối tượng
+        return freeTimes.map((freeTime) => ({ ...freeTime, type: "freeTime" }));
+      } catch (error) {
+        console.error("Lỗi khi lấy dữ liệu từ API (FreeTime):", error);
+        return [];
+      }
+    };
+
     const fetchAllData = async () => {
       const schedules = await fetchSchedules();
       const bookings = await fetchBooking();
-      const combinedData = [...schedules, ...bookings];
+      const freeTimes = await fecthFreeTime();
+      const combinedData = [...schedules, ...bookings, ...freeTimes];
       console.log(combinedData);
       setApiSchedules(combinedData);
     };
@@ -104,6 +118,12 @@ const HomePage = () => {
     }
   }, [isFirstLoad]);
 
+  const timeZones = ["ITC", "IST", "JST"];
+
+  const handleTimeZoneChange = (event) => {
+    setSelectedTimeZone(event.target.value);
+    console.log("Selected Time Zone:", event.target.value);
+  };
   const handleDateClick = (date) => {
     setSelectedDate(date);
     setIsFormVisible(true);
@@ -115,8 +135,6 @@ const HomePage = () => {
       ...prevData,
       [name]: type === "checkbox" ? checked : value,
     }));
-    if (name === "startTime") {
-    }
   };
   const handleUpdateInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -173,8 +191,12 @@ const HomePage = () => {
               schedule.type === "booking"
                 ? schedule.status === "approved"
                   ? "approved bg-red-600"
-                  : "pending bg-red-900"
-                : ""
+                  : schedule.status === "pending"
+                  ? "pending bg-red-900"
+                  : "" // Nếu không phải "approved" hoặc "pending"
+                : schedule.type === "freeTime"
+                ? "freetime" // Lớp cho "freeTime"
+                : "" // Nếu không phải "booking" hoặc "freeTime"
             }`}
             key={schedule.id}
             onClick={(e) => {
@@ -182,7 +204,24 @@ const HomePage = () => {
               handleScheduleClick(schedule);
             }}
           >
-            {schedule.type === "booking" ? schedule.content : schedule.title}
+            {schedule.type === "booking"
+              ? schedule.content
+              : schedule.type === "freeTime"
+              ? new Date(schedule.free_time_end).toLocaleTimeString("vi-VN", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                }) +
+                " - " +
+                new Date(schedule.free_time_start).toLocaleTimeString("vi-VN", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              : schedule.title +
+                " - " +
+                new Date(schedule.start_time).toLocaleTimeString("vi-VN", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
           </div>
         ))}
         {remainingCount > 0 && (
@@ -220,6 +259,13 @@ const HomePage = () => {
     const startDay = firstDayOfMonth.getDay();
     const calendarDays = [];
 
+    // Lấy ngày hiện tại
+    const today = new Date();
+    const todayDate = today.getDate();
+    const todayMonth = today.getMonth();
+    const todayYear = today.getFullYear();
+
+    // Render tiêu đề các ngày trong tuần
     calendarDays.push(
       ...daysOfWeek.map((day, index) => (
         <div key={`day-${index}`} className="day header-day">
@@ -228,45 +274,51 @@ const HomePage = () => {
       ))
     );
 
+    // Các ngày từ tháng trước (ô trống đầu lịch)
     for (let i = startDay; i > 0; i--) {
       const lastMonthDate = new Date(currentYear, currentMonth, 0);
       calendarDays.push(
         <div key={`empty-${i}`} className="day empty">
-          {`${lastMonthDate.getDate() - i + 1}/${lastMonthDate.getMonth()}`}
+          {`${lastMonthDate.getDate() - i + 1}/${lastMonthDate.getMonth() + 1}`}
         </div>
       );
     }
 
+    // Các ngày trong tháng hiện tại
     for (let i = 1; i <= totalDays; i++) {
       const currentDate = new Date(currentYear, currentMonth, i);
+
+      // Kiểm tra nếu là ngày hiện tại
+      const isToday =
+        currentDate.getDate() === todayDate &&
+        currentDate.getMonth() === todayMonth &&
+        currentDate.getFullYear() === todayYear;
+
       calendarDays.push(
         <div
           key={currentDate.toISOString()}
-          className="day"
+          className={`day ${isToday ? "today" : ""}`}
           onClick={() => handleDateClick(currentDate)}
         >
           {currentDate.getDate()}
-          {isAppointmentMode && renderSchedules(currentDate)}
+          {renderSchedules(currentDate)}
         </div>
       );
     }
 
+    // Các ngày từ tháng sau (ô trống cuối lịch)
     const remainingDays = (7 - ((totalDays + startDay) % 7)) % 7;
     for (let i = 1; i <= remainingDays; i++) {
       const nextMonthDate = new Date(currentYear, currentMonth + 1, i);
-      const day = nextMonthDate.getDate(); // Ngày trong tháng kế tiếp
-      const month = nextMonthDate.getMonth() + 1; // Tháng kế tiếp (tăng 1 do getMonth() trả về từ 0-11)
-
       calendarDays.push(
         <div key={`next-month-${i}`} className="day empty">
-          {`${day} thg ${month}`}
+          {`${nextMonthDate.getDate()} thg ${nextMonthDate.getMonth() + 1}`}
         </div>
       );
     }
 
     return calendarDays;
   };
-
   const goToPreviousMonth = () => {
     if (currentMonth === 0) {
       setCurrentMonth(11);
@@ -359,47 +411,6 @@ const HomePage = () => {
     }));
 
     console.log("Available End Times:", availableEndTimes);
-  };
-
-  const convertTime = (time12h) => {
-    const regex = /(\d{1,2}):(\d{2})\s?(AM|PM)/i;
-    const match = time12h.trim().match(regex);
-
-    if (match) {
-      let hours = parseInt(match[1], 10);
-      const minutes = match[2];
-      const period = match[3].toUpperCase();
-
-      if (period === "PM" && hours !== 12) {
-        hours += 12;
-      } else if (period === "AM" && hours === 12) {
-        hours = 0;
-      }
-
-      const time24h = `${hours.toString().padStart(2, "0")}:${minutes}:00`;
-      return time24h;
-    } else {
-      console.log("Loi Convert time");
-    }
-  };
-  const convertDate = (dateString) => {
-    const date = new Date(dateString);
-
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-
-    return `${year}-${month}-${day}`;
-  };
-  const convertTo12HourFormat = (isoString) => {
-    const date = new Date(isoString);
-    let hours = date.getHours();
-    const minutes = String(date.getMinutes()).padStart(2, "0");
-    const ampm = hours >= 12 ? "PM" : "AM";
-
-    hours = hours % 12 || 12; // Chuyển sang định dạng 12 giờ
-
-    return `${hours}:${minutes} ${ampm}`;
   };
 
   const handleShareLink = async () => {
@@ -534,6 +545,50 @@ const HomePage = () => {
     localStorage.removeItem("info");
     navigate("/");
   };
+  const convertTime = (time12h) => {
+    const regex = /(\d{1,2}):(\d{2})\s?(AM|PM)/i;
+    const match = time12h.trim().match(regex);
+
+    if (match) {
+      let hours = parseInt(match[1], 10);
+      const minutes = match[2];
+      const period = match[3].toUpperCase();
+
+      if (period === "PM" && hours !== 12) {
+        hours += 12;
+      } else if (period === "AM" && hours === 12) {
+        hours = 0;
+      }
+
+      const time24h = `${hours.toString().padStart(2, "0")}:${minutes}:00`;
+      return time24h;
+    } else {
+      console.log("Loi Convert time");
+    }
+  };
+
+  const convertDate = (dateString) => {
+    const date = new Date(dateString);
+
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+  };
+  const convertTo12HourFormat = (isoString) => {
+    const date = new Date(isoString);
+    let hours = date.getHours();
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    const ampm = hours >= 12 ? "PM" : "AM";
+
+    hours = hours % 12 || 12; // Chuyển sang định dạng 12 giờ
+
+    return `${hours}:${minutes} ${ampm}`;
+  };
+  const handleFreeTime = () => {
+    navigate("/freeTime");
+  };
 
   return (
     <div className="calendar">
@@ -545,31 +600,34 @@ const HomePage = () => {
         <button className="month-button next" onClick={gotoNextMonth}>
           &#62;
         </button>
-        <button
-          className="appointment border w-[110px] h-[30px] rounded-2xl mr-[55px]"
-          onClick={() => setIsAppointmentMode(true)}
-        >
-          Lịch Hẹn
-        </button>
 
-        <button
-          className="mr-[55px]"
-          onClick={() => setIsAppointmentMode(false)}
-        >
-          <FontAwesomeIcon icon={faCalendar} style={{ fontSize: "25px" }} />
-        </button>
         <button className="" onClick={() => handleShareLink()}>
           <FontAwesomeIcon
             icon={faSquareShareNodes}
             style={{ fontSize: "25px" }}
           />
         </button>
+        <select
+          className="ml-4 p-2 border rounded"
+          value={selectedTimeZone}
+          onChange={handleTimeZoneChange}
+        >
+          {timeZones.map((zone) => (
+            <option key={zone} value={zone}>
+              {"Time Zone : " + zone}
+            </option>
+          ))}
+        </select>
         <button className="ml-[55px] text-xl" onClick={() => logOut()}>
           <FontAwesomeIcon
             icon={faArrowAltCircleRight}
             style={{ fontSize: "25px" }}
           />{" "}
           Logout
+        </button>
+        <button className="ml-[55px]" onClick={() => handleFreeTime()}>
+          <FontAwesomeIcon icon={faCalendar} style={{ fontSize: "25px" }} />
+          Cấu hình lịch rảnh
         </button>
       </div>
       <div className="grid">{renderCalendar()}</div>

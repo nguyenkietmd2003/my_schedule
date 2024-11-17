@@ -1,7 +1,7 @@
 import _sequelize from 'sequelize';
 const { Model, Sequelize } = _sequelize;
 
-export default class Booking extends Model {
+export default class FreeTimeConfiguration extends Model {
   static init(sequelize, DataTypes) {
   return super.init({
     id: {
@@ -10,30 +10,25 @@ export default class Booking extends Model {
       allowNull: false,
       primaryKey: true
     },
-    free_time_config_id: {
+    user_id: {
       type: DataTypes.INTEGER,
       allowNull: false,
       references: {
-        model: 'FreeTimeConfiguration',
+        model: 'User',
         key: 'id'
       }
     },
-    guest_name: {
-      type: DataTypes.STRING(255),
+    free_time_start: {
+      type: DataTypes.DATE,
       allowNull: false
     },
-    guest_email: {
-      type: DataTypes.STRING(255),
+    free_time_end: {
+      type: DataTypes.DATE,
       allowNull: false
-    },
-    status: {
-      type: DataTypes.ENUM('pending','approved','rejected'),
-      allowNull: true,
-      defaultValue: "pending"
     }
   }, {
     sequelize,
-    tableName: 'Booking',
+    tableName: 'FreeTimeConfiguration',
     timestamps: false,
     indexes: [
       {
@@ -45,10 +40,10 @@ export default class Booking extends Model {
         ]
       },
       {
-        name: "free_time_config_id",
+        name: "user_id",
         using: "BTREE",
         fields: [
-          { name: "free_time_config_id" },
+          { name: "user_id" },
         ]
       },
     ]

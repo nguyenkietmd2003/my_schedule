@@ -12,4 +12,5 @@ appointmentRouter.get("/get-booking-by-id/:user_id", getBookingByUserID);
 appointmentRouter.post("/accept-booking/:id", acceptBooking);
 appointmentRouter.post("/reject-booking/:id", rejectBooking);
 
+//
 export default appointmentRouter;

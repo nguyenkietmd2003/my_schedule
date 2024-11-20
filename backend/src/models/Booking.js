@@ -30,6 +30,14 @@ export default class Booking extends Model {
       type: DataTypes.ENUM('pending','approved','rejected'),
       allowNull: true,
       defaultValue: "pending"
+    },
+    content: {
+      type: DataTypes.STRING(100),
+      allowNull: true
+    },
+    name_company: {
+      type: DataTypes.STRING(100),
+      allowNull: true
     }
   }, {
     sequelize,

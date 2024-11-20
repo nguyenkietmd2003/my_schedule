@@ -17,6 +17,7 @@ export const getFreeTimeByUserIDService = async (user_id) => {
 };
 export const addFreeTimeService = async (userId, start_time, end_time) => {
   console.log(userId, start_time, end_time);
+
   try {
     const conflictingSchedules = await model.WorkSchedule.findAll({
       where: {
@@ -88,55 +89,124 @@ export const addFreeTimeService = async (userId, start_time, end_time) => {
   }
 };
 
-export const updateFreeTimeService = async (req, res) => {
+export const updateFreeTimeService = async (
+  id,
+  freeTimeId,
+  start_time,
+  end_time
+) => {
+  console.log(id, freeTimeId, start_time, end_time);
   try {
-    const { id } = req.params;
-    const { freeTimeStart, freeTimeEnd } = req.body;
-
-    const startTime = new Date(freeTimeStart);
-    const endTime = new Date(freeTimeEnd);
-
-    if (startTime >= endTime) {
-      return {
-        message: "Thời gian bắt đầu phải trước thời gian kết thúc.",
-        ER: 4,
-      };
-    }
-
-    const freeTime = await FreeTimeConfiguration.findByPk(id);
-    if (!freeTime) {
-      return { message: "Không tìm thấy lịch rảnh cần sửa.", ER: 3 };
-    }
-
-    const overlappingSchedules = await WorkSchedule.findAll({
+    // Kiểm tra xem freeTimeId có tồn tại không
+    const freeTime = await model.FreeTimeConfiguration.findOne({
       where: {
-        user_id: freeTime.user_id,
+        id: freeTimeId,
+      },
+    });
+    if (!freeTime) {
+      return { message: "Không tìm thấy lịch rảnh", ER: 3 };
+    }
+
+    // Kiểm tra xung đột với lịch làm việc
+    const conflictingSchedules = await model.WorkSchedule.findAll({
+      where: {
+        user_id: id,
         [Op.or]: [
           {
             start_time: {
-              [Op.lt]: endTime,
+              [Op.between]: [start_time, end_time],
             },
+          },
+          {
             end_time: {
-              [Op.gt]: startTime,
+              [Op.between]: [start_time, end_time],
             },
+          },
+          {
+            [Op.and]: [
+              { start_time: { [Op.lte]: start_time } },
+              { end_time: { [Op.gte]: end_time } },
+            ],
           },
         ],
       },
     });
+    if (conflictingSchedules.length > 0) {
+      return { message: "Lịch rảnh bị xung đột với lịch làm việc", ER: 2 };
+    }
 
-    if (overlappingSchedules.length > 0) {
+    // Kiểm tra xung đột với các lịch rảnh khác (trừ lịch rảnh đang được cập nhật)
+    const conflictingFreeTime = await model.FreeTimeConfiguration.findAll({
+      where: {
+        user_id: id,
+        id: { [Op.ne]: freeTimeId }, // Loại trừ lịch rảnh đang được cập nhật
+        [Op.or]: [
+          {
+            free_time_start: {
+              [Op.between]: [start_time, end_time],
+            },
+          },
+          {
+            free_time_end: {
+              [Op.between]: [start_time, end_time],
+            },
+          },
+          {
+            [Op.and]: [
+              { free_time_start: { [Op.lte]: start_time } },
+              { free_time_end: { [Op.gte]: end_time } },
+            ],
+          },
+        ],
+      },
+    });
+    if (conflictingFreeTime.length > 0) {
       return {
-        ER: 2,
-        message:
-          "Thời gian rảnh bị trùng với lịch làm việc. Vui lòng chọn thời gian khác.",
+        message: "Lịch rảnh bị xung đột với các lịch rảnh khác",
+        ER: 1,
       };
     }
 
-    freeTime.free_time_start = startTime;
-    freeTime.free_time_end = endTime;
-    await freeTime.save();
+    // Cập nhật lịch rảnh
+    const updatedFreeTime = await model.FreeTimeConfiguration.update(
+      {
+        free_time_start: start_time,
+        free_time_end: end_time,
+      },
+      {
+        where: {
+          id: freeTimeId,
+        },
+      }
+    );
+    console.log(updatedFreeTime);
+    if (!updatedFreeTime) {
+      return { message: "Không thể cập nhật lịch rảnh" };
+    }
+    return { message: "Cập nhật lịch rảnh thành công", ER: 0 };
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
+};
+export const deleteFreeTimeService = async (freeTimeId) => {
+  try {
+    const relatedBookings = await model.Booking.findAll({
+      where: { free_time_config_id: freeTimeId },
+    });
 
-    return { ER: 0, message: freeTime };
+    if (relatedBookings.length > 0) {
+      return {
+        message: "Không thể xóa lịch rảnh vì đang được sử dụng trong booking",
+        ER: 1,
+      };
+    }
+
+    await model.FreeTimeConfiguration.destroy({
+      where: { id: freeTimeId },
+    });
+
+    return { message: "Xóa lịch rảnh thành công", ER: 0 };
   } catch (error) {
     console.error(error);
     throw error;

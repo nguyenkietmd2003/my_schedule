@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { booking, getInfoByLink } from "../../util/api";
+import { booking, bookingg, getInfoByLink } from "../../util/api";
 import { useParams } from "react-router-dom";
 import "../homepage/homepage1.css";
 import "../homepage/homepage2.css";
@@ -9,20 +9,19 @@ import { faCircleXmark } from "@fortawesome/free-solid-svg-icons";
 const SharePage = () => {
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
-  const [endTimeOptions, setEndTimeOptions] = useState([]);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    startTime: "",
-    endTime: "",
+    company: "",
     content: "",
   });
+  const [selectSchedule, setSelectSchedule] = useState(null);
   const [userID, setUserID] = useState(0);
   const [selectedDate, setSelectedDate] = useState(null);
+  const [showModal, setShowModal] = useState(false);
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [selectedSchedule, setSelectedSchedule] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [isAppointmentMode, setIsAppointmentMode] = useState(false);
   const [isSuccessNotificationVisible, setIsSuccessNotificationVisible] =
     useState(false);
 
@@ -65,10 +64,7 @@ const SharePage = () => {
       setCurrentMonth((prevMonth) => prevMonth + 1);
     }
   };
-  const handleDateClick = (date) => {
-    setSelectedDate(date);
-    setIsFormVisible(true);
-  };
+
   const handleScheduleClick = (schedule) => {
     setSelectedSchedule(schedule);
     setIsModalVisible(true);
@@ -79,8 +75,6 @@ const SharePage = () => {
       ...prevData,
       [name]: type === "checkbox" ? checked : value,
     }));
-    if (name === "startTime") {
-    }
   };
   const daysInMonth = (month, year) => {
     return new Date(year, month + 1, 0).getDate();
@@ -93,6 +87,16 @@ const SharePage = () => {
     const startDay = firstDayOfMonth.getDay();
     const calendarDays = [];
 
+    // Lấy ngày hiện tại
+    const today = new Date();
+    const todayDate = today.getDate();
+    const todayMonth = today.getMonth();
+    const todayYear = today.getFullYear();
+
+    // Lọc các ngày có lịch trình
+    const scheduledDays = getScheduledDays();
+
+    // Render tiêu đề các ngày trong tuần
     calendarDays.push(
       ...daysOfWeek.map((day, index) => (
         <div key={`day-${index}`} className="day header-day">
@@ -101,44 +105,105 @@ const SharePage = () => {
       ))
     );
 
+    // Các ngày từ tháng trước (ô trống đầu lịch)
     for (let i = startDay; i > 0; i--) {
       const lastMonthDate = new Date(currentYear, currentMonth, 0);
       calendarDays.push(
         <div key={`empty-${i}`} className="day empty">
-          {`${lastMonthDate.getDate() - i + 1}/${lastMonthDate.getMonth()}`}
+          {`${lastMonthDate.getDate() - i + 1}/${lastMonthDate.getMonth() + 1}`}
         </div>
       );
     }
 
+    // Các ngày trong tháng hiện tại
     for (let i = 1; i <= totalDays; i++) {
       const currentDate = new Date(currentYear, currentMonth, i);
+
+      // Kiểm tra nếu là ngày hiện tại
+      const isToday =
+        currentDate.getDate() === todayDate &&
+        currentDate.getMonth() === todayMonth &&
+        currentDate.getFullYear() === todayYear;
+
+      // Kiểm tra xem ngày có lịch trình không
+      const isScheduledDay = scheduledDays.includes(
+        currentDate.toLocaleDateString()
+      );
+
       calendarDays.push(
         <div
           key={currentDate.toISOString()}
-          className="day"
-          onClick={() => handleDateClick(currentDate)}
+          className={`day ${isToday ? "today" : ""} ${
+            isScheduledDay ? "has-schedule" : ""
+          }`}
+          onClick={isScheduledDay ? () => handleDayClick(currentDate) : null}
         >
           {currentDate.getDate()}
-          {renderSchedules(currentDate)}
         </div>
       );
     }
 
+    // Các ngày từ tháng sau (ô trống cuối lịch)
     const remainingDays = (7 - ((totalDays + startDay) % 7)) % 7;
     for (let i = 1; i <= remainingDays; i++) {
       const nextMonthDate = new Date(currentYear, currentMonth + 1, i);
-      const day = nextMonthDate.getDate(); // Ngày trong tháng kế tiếp
-      const month = nextMonthDate.getMonth() + 1; // Tháng kế tiếp (tăng 1 do getMonth() trả về từ 0-11)
-
       calendarDays.push(
         <div key={`next-month-${i}`} className="day empty">
-          {`${day} thg ${month}`}
+          {`${nextMonthDate.getDate()} thg ${nextMonthDate.getMonth() + 1}`}
         </div>
       );
     }
 
     return calendarDays;
   };
+  const handleDayClick = (date) => {
+    // Lọc các lịch trình cho ngày đã chọn
+    const daySchedules = apiSchedules.filter((schedule) => {
+      const scheduleStartDate = new Date(
+        schedule.free_time_start
+      ).toLocaleDateString(); // Chuyển đổi ngày bắt đầu
+      return scheduleStartDate === date.toLocaleDateString(); // So sánh ngày
+    });
+    console.log(daySchedules);
+    console.log(date);
+
+    setSelectedDate(date); // Lưu ngày được chọn
+    setSelectedSchedule(daySchedules); // Lưu lịch trình cho ngày đó
+    setShowModal(true); // Hiển thị modal
+  };
+  const closeModal = () => {
+    setShowModal(false);
+  };
+  const handleScheduleSelect = (schedule) => {
+    console.log("Selected schedule:", schedule);
+    setIsModalVisible(true);
+    setSelectSchedule(schedule);
+    // Xử lý khi người dùng chọn một lịch trình, ví dụ: Đặt lịch, thông báo, v.v.
+    closeModal(); // Đóng modal sau khi chọn
+  };
+  // Hàm lấy danh sách các ngày có lịch trình
+  const getScheduledDays = () => {
+    // Ngày hiện tại theo định dạng địa phương
+    const today = new Date();
+    const dateString = today.toLocaleDateString();
+
+    // Kiểm tra xem apiSchedules có phải là một mảng không
+    if (!Array.isArray(apiSchedules)) {
+      return [];
+    }
+
+    // Lọc lịch trình theo ngày
+    const scheduledDays = apiSchedules.map((schedule) => {
+      const scheduleStartDate = new Date(
+        schedule.free_time_start
+      ).toLocaleDateString();
+      return scheduleStartDate;
+    });
+
+    // Loại bỏ các ngày trùng lặp
+    return [...new Set(scheduledDays)];
+  };
+
   const resetForm = () => {
     setFormData({
       startTime: "",
@@ -148,41 +213,6 @@ const SharePage = () => {
       content: "",
     });
     setIsFormVisible(false);
-  };
-  const populateTimeOptions = () => {
-    const times = [];
-    for (let hour = 0; hour < 24; hour++) {
-      const period = hour < 12 ? "AM" : "PM";
-      const displayHour = hour % 12 === 0 ? 12 : hour % 12;
-      const minutes = ["00", "30"];
-
-      minutes.forEach((minute) => {
-        const timeOption = `${displayHour}:${minute} ${period}`;
-        times.push(timeOption);
-      });
-    }
-    return times;
-  };
-
-  const timeOptions = populateTimeOptions();
-
-  const updateEndTimeOptions = (selectedStartTime) => {
-    const startIndex = timeOptions.findIndex(
-      (time) => time === selectedStartTime
-    );
-
-    const availableEndTimes = timeOptions.filter(
-      (time, index) => index > startIndex
-    );
-
-    setEndTimeOptions(availableEndTimes);
-
-    setFormData((prevData) => ({
-      ...prevData,
-      endTime: "", // Reset endTime to an empty string
-    }));
-
-    console.log("Available End Times:", availableEndTimes);
   };
 
   const convertDate = (dateString) => {
@@ -218,20 +248,18 @@ const SharePage = () => {
   };
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const date = convertDate(selectedDate);
-    const startTime = convertTime(formData.startTime);
-    const endTime = convertTime(formData.endTime);
-    const newSchedule = {
-      user_id: userID,
+    console.log(formData);
+    console.log(selectedSchedule);
+    const newBooking = {
+      free_time_config_id: selectSchedule.id,
       guest_name: formData.name,
       guest_email: formData.email,
-      start_time: `${date}T${startTime}`,
-      end_time: `${date}T${endTime}`,
       content: formData.content,
+      name_company: formData.company,
     };
     try {
-      const result = await booking(newSchedule);
-      console.log("Data trước khi call API booking ", newSchedule);
+      const result = await bookingg(newBooking);
+      console.log("Data trước khi call API booking ", newBooking);
       console.log(result);
       if (result.status === 200) {
         setIsSuccessNotificationVisible(true);
@@ -250,50 +278,12 @@ const SharePage = () => {
     resetForm();
     setIsFormVisible(false);
   };
-  const renderSchedules = (date) => {
-    // Ngày hiện tại theo định dạng địa phương
-    const dateString = date.toLocaleDateString();
 
-    // Kiểm tra xem apiSchedules có phải là một mảng không
-    if (!Array.isArray(apiSchedules)) {
-      return <div className=""></div>;
-    }
-
-    // Lọc lịch trình theo ngày
-    const daySchedules = apiSchedules.filter((schedule) => {
-      const scheduleDate = new Date(schedule.start_time).toLocaleDateString(); // Chuyển đổi ngày từ lịch trình
-      return scheduleDate === dateString; // So sánh ngày
-    });
-
-    // Kiểm tra nếu không có lịch trình nào trong ngày
-    if (daySchedules.length === 0) {
-      return <div className=""></div>;
-    }
-
-    // Chọn tối đa 2 lịch trình để hiển thị
-    const displaySchedules = daySchedules.slice(0, 2);
-    const remainingCount = daySchedules.length - displaySchedules.length; // Tính số lịch trình còn lại
-
-    return (
-      <div>
-        {displaySchedules.map((schedule, index) => (
-          <div
-            className="schedule"
-            key={index}
-            onClick={(e) => {
-              e.stopPropagation(); // Ngăn chặn sự kiện click từ propagating lên thẻ cha
-              handleScheduleClick(schedule); // Gọi hàm xử lý sự kiện click
-            }}
-          >
-            {schedule.title}
-          </div>
-        ))}
-        {remainingCount > 0 && (
-          <div className="schedule">{`Còn ${remainingCount} lịch khác`}</div>
-        )}
-      </div>
-    );
+  const handleClickBooking = () => {
+    setIsFormVisible(true);
+    setIsModalVisible(false);
   };
+
   return (
     <div className="calendar">
       <div className="header">
@@ -304,10 +294,7 @@ const SharePage = () => {
         <button className="month-button next" onClick={gotoNextMonth}>
           &#62;
         </button>
-        <button
-          className="appointment border w-[110px] h-[30px] rounded-2xl mr-[55px]"
-          onClick={() => setIsAppointmentMode(true)}
-        >
+        <button className="appointment border w-[110px] h-[30px] rounded-2xl mr-[55px]">
           Lịch Hẹn
         </button>
       </div>
@@ -343,59 +330,23 @@ const SharePage = () => {
                   required
                 />
               </label>
-              <div className="font-bold text-xl">Thời Gian</div>
-              <div className="time-input mb-5">
-                <select
-                  id="startTime"
-                  name="startTime"
-                  value={formData.startTime}
-                  onChange={(e) => {
-                    const selectedStartTime = e.target.value;
-                    setFormData((prevData) => ({
-                      ...prevData,
-                      startTime: selectedStartTime,
-                      endTime: "", // Reset endTime khi thay đổi startTime
-                    }));
-                    updateEndTimeOptions(selectedStartTime);
-                  }}
-                  required
-                >
-                  <option value="">-- Chọn giờ bắt đầu --</option>
-                  {timeOptions.map((time) => (
-                    <option key={time} value={time}>
-                      {time}
-                    </option>
-                  ))}
-                </select>
 
-                <select
-                  id="endTime"
-                  name="endTime"
-                  value={formData.endTime}
-                  onChange={(e) => {
-                    const selectedEndTime = e.target.value;
-                    setFormData((prevData) => ({
-                      ...prevData,
-                      endTime: selectedEndTime,
-                    }));
-                  }}
-                  required={!!formData.startTime}
-                  disabled={!formData.startTime} // Chỉ cho phép chọn khi có giá trị startTime
-                >
-                  <option value="">-- Chọn giờ kết thúc --</option>
-                  {endTimeOptions.map((time) => (
-                    <option key={time} value={time}>
-                      {time}
-                    </option>
-                  ))}
-                </select>
-              </div>
               <div className="font-bold text-xl"> Nội dung</div>
               <label className="title-input">
                 <input
                   type="text"
                   name="content"
                   value={formData.content}
+                  onChange={handleInputChange}
+                  required
+                />
+              </label>
+              <div className="font-bold text-xl">Tên Công Ty</div>
+              <label className="title-input">
+                <input
+                  type="text"
+                  name="company"
+                  value={formData.company}
                   onChange={handleInputChange}
                   required
                 />
@@ -424,22 +375,73 @@ const SharePage = () => {
             <span className="close" onClick={() => setIsModalVisible(false)}>
               &times;
             </span>
-            {selectedSchedule && (
+            {selectSchedule && (
               <div>
                 <p>
-                  <strong>Tiêu đề:</strong> {selectedSchedule.title}
+                  <strong>Lịch Rảnh</strong>
                 </p>
+
                 <p>
                   <strong>Thời gian bắt đầu:</strong>{" "}
-                  {new Date(selectedSchedule.start_time).toLocaleString()}
+                  {new Date(selectSchedule.free_time_start).toLocaleString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    day: "2-digit",
+                    month: "2-digit",
+                    year: "numeric",
+                  })}
                 </p>
                 <p>
                   <strong>Thời gian kết thúc:</strong>{" "}
-                  {new Date(selectedSchedule.end_time).toLocaleString()}
+                  {new Date(selectSchedule.free_time_end).toLocaleString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    day: "2-digit",
+                    month: "2-digit",
+                    year: "numeric",
+                  })}
                 </p>
-                <p>
-                  <strong>Ưu tiên:</strong> {selectedSchedule.priority}
-                </p>
+                <button
+                  className="bg-blue-500 hover:bg-blue-700 text-white font-bold px-4 py-1 rounded-md mt-1"
+                  onClick={() => handleClickBooking(true)}
+                >
+                  Đặt lịch
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {showModal && (
+        <div className="modal">
+          <div className="modal-content">
+            <span className="close" onClick={closeModal}>
+              ×
+            </span>
+            <h3>
+              Lựa chọn thời gian rảnh cho ngày{" "}
+              {selectedDate.toLocaleDateString()}
+            </h3>
+            {selectedSchedule.length === 0 ? (
+              <p>Không có lịch trình nào cho ngày này.</p>
+            ) : (
+              <div>
+                {selectedSchedule.map((schedule) => (
+                  <div
+                    key={schedule.id}
+                    className="schedule-option"
+                    onClick={() => handleScheduleSelect(schedule)}
+                  >
+                    {`${new Date(schedule.free_time_start).toLocaleTimeString(
+                      "vi-VN",
+                      { hour: "2-digit", minute: "2-digit" }
+                    )} -${new Date(schedule.free_time_end).toLocaleTimeString(
+                      "vi-VN",
+                      { hour: "2-digit", minute: "2-digit" }
+                    )}`}
+                  </div>
+                ))}
               </div>
             )}
           </div>

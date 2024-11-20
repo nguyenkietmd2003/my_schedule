@@ -72,3 +72,21 @@ export const getFreeTimeByUser = (user_id) => {
   const URL_API = `/v1/apiFreeTime/get-freeTime-by-user`;
   return axios.post(URL_API, { user_id: user_id });
 };
+
+export const deleteFreeTime = (freeTimeId) => {
+  const URL_API = `/v1/apiFreeTime/delete/${freeTimeId}`;
+  return axios.post(URL_API);
+};
+export const acceptbookingg = (id) => {
+  const URL_API = `/v1/apiAppointment/accept/${id}`;
+  return axios.post(URL_API);
+};
+export const rejectBookingg = (id) => {
+  const URL_API = `/v1/apiAppointment/reject/${id}`;
+  return axios.post(URL_API);
+};
+
+export const bookingg = (data) => {
+  const URL_API = "/v1/apiAppointment/booking";
+  return axios.post(URL_API, data);
+};

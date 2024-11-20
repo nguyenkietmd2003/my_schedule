@@ -238,7 +238,7 @@ export const getScheduleShareLinkService = async (randomString) => {
       return { message: "Liên kết không hợp lệ hoặc đã hết hạn." };
     }
 
-    const schedule = await model.WorkSchedule.findAll({
+    const schedule = await model.FreeTimeConfiguration.findAll({
       where: { user_id: publicLink.user_id },
     });
 

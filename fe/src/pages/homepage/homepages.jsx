@@ -11,12 +11,15 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import {
   acceptBooking,
+  acceptbookingg,
   createSchedule,
+  deleteFreeTime,
   deleteSchedule,
   getBooking,
   getFreeTimeByUser,
   getScheduleById,
   rejectBooking,
+  rejectBookingg,
   shareLink,
   updateSchedule,
 } from "../../util/api";
@@ -51,7 +54,9 @@ const HomePage = () => {
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [isFormEdit, setIsFormEdit] = useState(false);
   const [selectedSchedule, setSelectedSchedule] = useState(null);
+  const [selectedFreeTime, setSelectedFreeTime] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isFreeTimeModalVisible, setIsFreeTimeModalVisible] = useState(false);
   const [isModalBooking, setIsModalBooking] = useState(false);
   const [isModalPending, setIsModalPending] = useState(false);
   const [selectedBookings, setSelectedBookings] = useState(null);
@@ -172,7 +177,18 @@ const HomePage = () => {
     }
 
     const daySchedules = apiSchedules.filter((schedule) => {
-      const scheduleDate = new Date(schedule.start_time).toLocaleDateString();
+      let scheduleDate = "";
+
+      if (schedule.type === "freeTime") {
+        scheduleDate = new Date(schedule.free_time_start).toLocaleDateString();
+      } else if (schedule.type === "schedule") {
+        scheduleDate = new Date(schedule.start_time).toLocaleDateString();
+      } else if (schedule.type === "booking" && schedule.free_time_config) {
+        scheduleDate = new Date(
+          schedule.free_time_config.free_time_start
+        ).toLocaleDateString();
+      }
+
       return scheduleDate === dateString;
     });
 
@@ -190,9 +206,9 @@ const HomePage = () => {
             className={`schedule ${
               schedule.type === "booking"
                 ? schedule.status === "approved"
-                  ? "approved bg-red-600"
+                  ? "approved"
                   : schedule.status === "pending"
-                  ? "pending bg-red-900"
+                  ? "pending"
                   : "" // Nếu không phải "approved" hoặc "pending"
                 : schedule.type === "freeTime"
                 ? "freetime" // Lớp cho "freeTime"
@@ -205,14 +221,14 @@ const HomePage = () => {
             }}
           >
             {schedule.type === "booking"
-              ? schedule.content
+              ? `${schedule.guest_name} - ${schedule.content}`
               : schedule.type === "freeTime"
-              ? new Date(schedule.free_time_end).toLocaleTimeString("vi-VN", {
+              ? new Date(schedule.free_time_start).toLocaleTimeString("vi-VN", {
                   hour: "2-digit",
                   minute: "2-digit",
                 }) +
                 " - " +
-                new Date(schedule.free_time_start).toLocaleTimeString("vi-VN", {
+                new Date(schedule.free_time_end).toLocaleTimeString("vi-VN", {
                   hour: "2-digit",
                   minute: "2-digit",
                 })
@@ -245,6 +261,10 @@ const HomePage = () => {
       console.log("Thông tin schedule:", schedule);
       setSelectedSchedule(schedule);
       setIsModalVisible(true);
+    } else if (schedule.type === "freeTime") {
+      console.log("Thông tin freeTime:", schedule);
+      setSelectedFreeTime(schedule);
+      setIsFreeTimeModalVisible(true);
     }
   };
 
@@ -376,7 +396,24 @@ const HomePage = () => {
       console.log(error);
     }
   };
-
+  const handleDeleteFreeTime = async (freeTimeId) => {
+    try {
+      const data = await deleteFreeTime(freeTimeId);
+      console.log(data);
+      setApiSchedules((prevSchedules) => {
+        if (prevSchedules) {
+          return prevSchedules.filter((schedule) => schedule.id !== freeTimeId);
+        } else {
+          console.error("prevSchedules is not an array", prevSchedules);
+          return [];
+        }
+      });
+      setIsFreeTimeModalVisible(false);
+      setSelectedFreeTime(null);
+    } catch (error) {
+      console.log(error);
+    }
+  };
   const populateTimeOptions = () => {
     const times = [];
     for (let hour = 0; hour < 24; hour++) {
@@ -513,7 +550,7 @@ const HomePage = () => {
   };
   const handleRejectBooking = async (booking) => {
     try {
-      const data = await rejectBooking(booking.id_booking);
+      const data = await rejectBookingg(booking.id);
       console.log(data);
       if (data.status === 200) {
         setIsFirstLoad(true);
@@ -525,7 +562,7 @@ const HomePage = () => {
   };
   const handleAcceptBooking = async (booking) => {
     try {
-      const data = await acceptBooking(booking.id_booking);
+      const data = await acceptbookingg(booking.id);
       console.log(data);
       if (data.status === 200) {
         console.log("ok");
@@ -618,6 +655,10 @@ const HomePage = () => {
             </option>
           ))}
         </select>
+        <button className="ml-[55px]" onClick={() => handleFreeTime()}>
+          <FontAwesomeIcon icon={faCalendar} style={{ fontSize: "25px" }} />
+          Cấu hình lịch rảnh
+        </button>
         <button className="ml-[55px] text-xl" onClick={() => logOut()}>
           <FontAwesomeIcon
             icon={faArrowAltCircleRight}
@@ -625,12 +666,12 @@ const HomePage = () => {
           />{" "}
           Logout
         </button>
-        <button className="ml-[55px]" onClick={() => handleFreeTime()}>
-          <FontAwesomeIcon icon={faCalendar} style={{ fontSize: "25px" }} />
-          Cấu hình lịch rảnh
-        </button>
       </div>
       <div className="grid">{renderCalendar()}</div>
+      <div className="flex justify-between">
+        <button>Cookies</button>
+        <button>Footer</button>
+      </div>
       {isModalVisible && (
         <div className="modal">
           <div className="modal-content">
@@ -672,6 +713,44 @@ const HomePage = () => {
           </div>
         </div>
       )}
+      {/*  */}
+      {isFreeTimeModalVisible && (
+        <div className="modal">
+          <div className="modal-content">
+            <span
+              className="close"
+              onClick={() => setIsFreeTimeModalVisible(false)}
+            >
+              &times;
+            </span>
+            {selectedFreeTime && (
+              <div>
+                <p>Lịch Cấu Hình</p>
+                <p>
+                  <strong>Thời gian bắt đầu:</strong>{" "}
+                  {new Date(selectedFreeTime.free_time_start).toLocaleString()}
+                </p>
+                <p>
+                  <strong>Thời gian kết thúc:</strong>{" "}
+                  {new Date(selectedFreeTime.free_time_end).toLocaleString()}
+                </p>
+                <p>
+                  <strong>Ưu tiên:</strong> {selectedFreeTime.priority}
+                </p>
+                <div>
+                  <button
+                    className="rounded-md border-4 w-20"
+                    onClick={() => handleDeleteFreeTime(selectedFreeTime.id)}
+                  >
+                    Xóa
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      {/*  */}
 
       {isModalBooking && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">

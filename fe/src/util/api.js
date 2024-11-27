@@ -87,6 +87,10 @@ export const rejectBookingg = (id) => {
 };
 
 export const bookingg = (data) => {
-  const URL_API = "/v1/apiAppointment/booking";
+  const URL_API = "/v1/apiAppointment/bookingg";
+  return axios.post(URL_API, data);
+};
+export const sendOtpBooking = (data) => {
+  const URL_API = "/v1/apiAppointment/sendotp";
   return axios.post(URL_API, data);
 };

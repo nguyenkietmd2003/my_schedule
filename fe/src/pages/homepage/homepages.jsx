@@ -4,13 +4,11 @@ import "./homepage1.css";
 import "./form.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  faArrowAltCircleRight,
   faCalendar,
   faCircleXmark,
-  faSquareShareNodes,
+  faShareFromSquare,
 } from "@fortawesome/free-solid-svg-icons";
 import {
-  acceptBooking,
   acceptbookingg,
   createSchedule,
   deleteFreeTime,
@@ -18,12 +16,12 @@ import {
   getBooking,
   getFreeTimeByUser,
   getScheduleById,
-  rejectBooking,
   rejectBookingg,
   shareLink,
   updateSchedule,
 } from "../../util/api";
 import { useNavigate } from "react-router-dom";
+import { AuthContext } from "../../context/wrapContext";
 
 const HomePage = () => {
   const navigate = useNavigate();
@@ -39,7 +37,7 @@ const HomePage = () => {
     updateNotification_time: false,
   });
   const [isFirstLoad, setIsFirstLoad] = useState(true);
-
+  const { translations, setLanguage, language } = useContext(AuthContext);
   const [formData, setFormData] = useState({
     title: "",
     startTime: "",
@@ -47,7 +45,9 @@ const HomePage = () => {
     priority: "",
     notification_time: false,
   });
-  const [selectedTimeZone, setSelectedTimeZone] = useState("ITC");
+  const [selectedTimeZone, setSelectedTimeZone] = useState("Asia/Bangkok"); // Giá trị mặc định là "Asia/Bangkok"
+
+  const [selectedLanguage, setSelectedLanguage] = useState("VN");
   const [link, setLink] = useState("");
   const [isShowLink, setIsShowLink] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
@@ -61,6 +61,14 @@ const HomePage = () => {
   const [isModalPending, setIsModalPending] = useState(false);
   const [selectedBookings, setSelectedBookings] = useState(null);
   const [apiSchedules, setApiSchedules] = useState([]);
+  const [selectedRemainingSchedules, setSelectedRemainingSchedules] = useState(
+    []
+  );
+  const [
+    isRemainingSchedulesModalVisible,
+    setIsRemainingSchedulesModalVisible,
+  ] = useState(false);
+
   useEffect(() => {
     const getInfo = localStorage.getItem("info");
     const user = JSON.parse(getInfo);
@@ -116,18 +124,19 @@ const HomePage = () => {
       console.log(combinedData);
       setApiSchedules(combinedData);
     };
-
+    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    console.log(`Múi giờ hiện tại của bạn: ${timeZone}`);
     if (isFirstLoad) {
+      setSelectedLanguage(language);
       fetchAllData();
       setIsFirstLoad(false);
     }
   }, [isFirstLoad]);
 
-  const timeZones = ["ITC", "IST", "JST"];
+  const timeZones = ["Asia/Bangkok", "Asia/Kolkata", "Asia/Tokyo"];
 
-  const handleTimeZoneChange = (event) => {
-    setSelectedTimeZone(event.target.value);
-    console.log("Selected Time Zone:", event.target.value);
+  const handleTimeZoneChange = (e) => {
+    setSelectedTimeZone(e.target.value); // Cập nhật state khi người dùng chọn múi giờ mới
   };
   const handleDateClick = (date) => {
     setSelectedDate(date);
@@ -169,82 +178,10 @@ const HomePage = () => {
     setIsFormEdit(false);
     setIsFormVisible(false);
   };
-  const renderSchedules = (date) => {
-    const dateString = date.toLocaleDateString();
-
-    if (!Array.isArray(apiSchedules)) {
-      return <div className=""></div>;
-    }
-
-    const daySchedules = apiSchedules.filter((schedule) => {
-      let scheduleDate = "";
-
-      if (schedule.type === "freeTime") {
-        scheduleDate = new Date(schedule.free_time_start).toLocaleDateString();
-      } else if (schedule.type === "schedule") {
-        scheduleDate = new Date(schedule.start_time).toLocaleDateString();
-      } else if (schedule.type === "booking" && schedule.free_time_config) {
-        scheduleDate = new Date(
-          schedule.free_time_config.free_time_start
-        ).toLocaleDateString();
-      }
-
-      return scheduleDate === dateString;
-    });
-
-    if (daySchedules.length === 0) {
-      return <div className=""></div>;
-    }
-
-    const displaySchedules = daySchedules.slice(0, 2);
-    const remainingCount = daySchedules.length - displaySchedules.length;
-
-    return (
-      <div>
-        {displaySchedules.map((schedule) => (
-          <div
-            className={`schedule ${
-              schedule.type === "booking"
-                ? schedule.status === "approved"
-                  ? "approved"
-                  : schedule.status === "pending"
-                  ? "pending"
-                  : "" // Nếu không phải "approved" hoặc "pending"
-                : schedule.type === "freeTime"
-                ? "freetime" // Lớp cho "freeTime"
-                : "" // Nếu không phải "booking" hoặc "freeTime"
-            }`}
-            key={schedule.id}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleScheduleClick(schedule);
-            }}
-          >
-            {schedule.type === "booking"
-              ? `${schedule.guest_name} - ${schedule.content}`
-              : schedule.type === "freeTime"
-              ? new Date(schedule.free_time_start).toLocaleTimeString("vi-VN", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                }) +
-                " - " +
-                new Date(schedule.free_time_end).toLocaleTimeString("vi-VN", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })
-              : schedule.title +
-                " - " +
-                new Date(schedule.start_time).toLocaleTimeString("vi-VN", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-          </div>
-        ))}
-        {remainingCount > 0 && (
-          <div className="schedule">{`Còn ${remainingCount} lịch khác`}</div>
-        )}
-      </div>
-    );
+  const handleRemainingSchedulesClick = (e, daySchedules) => {
+    e.stopPropagation();
+    setSelectedRemainingSchedules(daySchedules);
+    setIsRemainingSchedulesModalVisible(true);
   };
 
   const handleScheduleClick = (schedule) => {
@@ -272,73 +209,6 @@ const HomePage = () => {
     return new Date(year, month + 1, 0).getDate();
   };
 
-  const renderCalendar = () => {
-    const daysOfWeek = ["CN", "TH 2", "TH 3", "TH 4", "TH 5", "TH 6", "TH 7"];
-    const totalDays = daysInMonth(currentMonth, currentYear);
-    const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
-    const startDay = firstDayOfMonth.getDay();
-    const calendarDays = [];
-
-    // Lấy ngày hiện tại
-    const today = new Date();
-    const todayDate = today.getDate();
-    const todayMonth = today.getMonth();
-    const todayYear = today.getFullYear();
-
-    // Render tiêu đề các ngày trong tuần
-    calendarDays.push(
-      ...daysOfWeek.map((day, index) => (
-        <div key={`day-${index}`} className="day header-day">
-          {day}
-        </div>
-      ))
-    );
-
-    // Các ngày từ tháng trước (ô trống đầu lịch)
-    for (let i = startDay; i > 0; i--) {
-      const lastMonthDate = new Date(currentYear, currentMonth, 0);
-      calendarDays.push(
-        <div key={`empty-${i}`} className="day empty">
-          {`${lastMonthDate.getDate() - i + 1}/${lastMonthDate.getMonth() + 1}`}
-        </div>
-      );
-    }
-
-    // Các ngày trong tháng hiện tại
-    for (let i = 1; i <= totalDays; i++) {
-      const currentDate = new Date(currentYear, currentMonth, i);
-
-      // Kiểm tra nếu là ngày hiện tại
-      const isToday =
-        currentDate.getDate() === todayDate &&
-        currentDate.getMonth() === todayMonth &&
-        currentDate.getFullYear() === todayYear;
-
-      calendarDays.push(
-        <div
-          key={currentDate.toISOString()}
-          className={`day ${isToday ? "today" : ""}`}
-          onClick={() => handleDateClick(currentDate)}
-        >
-          {currentDate.getDate()}
-          {renderSchedules(currentDate)}
-        </div>
-      );
-    }
-
-    // Các ngày từ tháng sau (ô trống cuối lịch)
-    const remainingDays = (7 - ((totalDays + startDay) % 7)) % 7;
-    for (let i = 1; i <= remainingDays; i++) {
-      const nextMonthDate = new Date(currentYear, currentMonth + 1, i);
-      calendarDays.push(
-        <div key={`next-month-${i}`} className="day empty">
-          {`${nextMonthDate.getDate()} thg ${nextMonthDate.getMonth() + 1}`}
-        </div>
-      );
-    }
-
-    return calendarDays;
-  };
   const goToPreviousMonth = () => {
     if (currentMonth === 0) {
       setCurrentMonth(11);
@@ -399,55 +269,29 @@ const HomePage = () => {
   const handleDeleteFreeTime = async (freeTimeId) => {
     try {
       const data = await deleteFreeTime(freeTimeId);
-      console.log(data);
-      setApiSchedules((prevSchedules) => {
-        if (prevSchedules) {
-          return prevSchedules.filter((schedule) => schedule.id !== freeTimeId);
-        } else {
-          console.error("prevSchedules is not an array", prevSchedules);
-          return [];
-        }
-      });
+      // console.log(data.message.ER);
+      if (data.message.ER == 1) {
+        alert(
+          "không thể xóa lịch vì đang tồn tại trong bảng booking ( đang có người đặt)"
+        );
+      }
+      if (data.message.ER == 0) {
+        setApiSchedules((prevSchedules) => {
+          if (prevSchedules) {
+            return prevSchedules.filter(
+              (schedule) => schedule.id !== freeTimeId
+            );
+          } else {
+            console.error("prevSchedules is not an array", prevSchedules);
+            return [];
+          }
+        });
+      }
       setIsFreeTimeModalVisible(false);
       setSelectedFreeTime(null);
     } catch (error) {
       console.log(error);
     }
-  };
-  const populateTimeOptions = () => {
-    const times = [];
-    for (let hour = 0; hour < 24; hour++) {
-      const period = hour < 12 ? "AM" : "PM";
-      const displayHour = hour % 12 === 0 ? 12 : hour % 12;
-      const minutes = ["00", "30"];
-
-      minutes.forEach((minute) => {
-        const timeOption = `${displayHour}:${minute} ${period}`;
-        times.push(timeOption);
-      });
-    }
-    return times;
-  };
-
-  const timeOptions = populateTimeOptions();
-
-  const updateEndTimeOptions = (selectedStartTime) => {
-    const startIndex = timeOptions.findIndex(
-      (time) => time === selectedStartTime
-    );
-
-    const availableEndTimes = timeOptions.filter(
-      (time, index) => index > startIndex
-    );
-
-    setEndTimeOptions(availableEndTimes);
-
-    setFormData((prevData) => ({
-      ...prevData,
-      endTime: "",
-    }));
-
-    console.log("Available End Times:", availableEndTimes);
   };
 
   const handleShareLink = async () => {
@@ -582,6 +426,173 @@ const HomePage = () => {
     localStorage.removeItem("info");
     navigate("/");
   };
+  const renderSchedules = (date) => {
+    const dateString = date.toLocaleDateString();
+    if (!Array.isArray(apiSchedules)) {
+      return <div className=""></div>;
+    }
+
+    const options = { timeZone: selectedTimeZone };
+
+    const daySchedules = apiSchedules.filter((schedule) => {
+      let scheduleDate = "";
+      if (schedule.type === "freeTime") {
+        scheduleDate = new Date(schedule.free_time_start).toLocaleDateString(
+          "vi-VN",
+          options
+        );
+      } else if (schedule.type === "schedule") {
+        scheduleDate = new Date(schedule.start_time).toLocaleDateString(
+          "vi-VN",
+          options
+        );
+      } else if (schedule.type === "booking" && schedule.free_time_config) {
+        scheduleDate = new Date(
+          schedule.free_time_config.free_time_start
+        ).toLocaleDateString("vi-VN", options);
+      }
+      return scheduleDate === dateString;
+    });
+
+    if (daySchedules.length === 0) {
+      return <div className=""></div>;
+    }
+
+    const displaySchedules = daySchedules.slice(0, 2);
+    const remainingCount = daySchedules.length - displaySchedules.length;
+
+    return (
+      <div>
+        {displaySchedules.map((schedule) => (
+          <div
+            className={`schedule ${
+              schedule.type === "booking"
+                ? schedule.status === "approved"
+                  ? "approved"
+                  : schedule.status === "pending"
+                  ? "pending"
+                  : "" // Nếu không phải "approved" hoặc "pending"
+                : schedule.type === "freeTime"
+                ? "freetime" // Lớp cho "freeTime"
+                : "" // Nếu không phải "booking" hoặc "freeTime"
+            }`}
+            key={schedule.id}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleScheduleClick(schedule);
+            }}
+          >
+            {schedule.type === "booking" ? (
+              schedule.status === "pending" ? (
+                <span>{translations["confirm_appointment"]}</span>
+              ) : (
+                `${translations.appointment_with} : ${schedule.guest_name}`
+              )
+            ) : schedule.type === "freeTime" ? (
+              `${translations.available}:` +
+              new Date(schedule.free_time_start).toLocaleTimeString("vi-VN", {
+                hour: "2-digit",
+                minute: "2-digit",
+                timeZone: selectedTimeZone, // Áp dụng múi giờ
+              }) +
+              " - " +
+              new Date(schedule.free_time_end).toLocaleTimeString("vi-VN", {
+                hour: "2-digit",
+                minute: "2-digit",
+                timeZone: selectedTimeZone, // Áp dụng múi giờ
+              })
+            ) : (
+              schedule.title +
+              " - " +
+              new Date(schedule.start_time).toLocaleTimeString("vi-VN", {
+                hour: "2-digit",
+                minute: "2-digit",
+                timeZone: selectedTimeZone, // Áp dụng múi giờ
+              })
+            )}
+          </div>
+        ))}
+        {remainingCount > 0 && (
+          <div
+            className="schedule"
+            onClick={(e) => handleRemainingSchedulesClick(e, daySchedules)}
+          >
+            {translations["remaining_appointments"].replace(
+              "{remainingCount}",
+              remainingCount
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+  const renderCalendar = () => {
+    const daysOfWeek = ["CN", "TH 2", "TH 3", "TH 4", "TH 5", "TH 6", "TH 7"];
+    const totalDays = daysInMonth(currentMonth, currentYear);
+    const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
+    const startDay = firstDayOfMonth.getDay();
+    const calendarDays = [];
+
+    // Lấy ngày hiện tại
+    const today = new Date();
+    const todayDate = today.getDate();
+    const todayMonth = today.getMonth();
+    const todayYear = today.getFullYear();
+
+    // Render tiêu đề các ngày trong tuần
+    calendarDays.push(
+      ...daysOfWeek.map((day, index) => (
+        <div key={`day-${index}`} className="day header-day">
+          {day}
+        </div>
+      ))
+    );
+
+    // Các ngày từ tháng trước (ô trống đầu lịch)
+    for (let i = startDay; i > 0; i--) {
+      const lastMonthDate = new Date(currentYear, currentMonth, 0);
+      calendarDays.push(
+        <div key={`empty-${i}`} className="day empty">
+          {`${lastMonthDate.getDate() - i + 1}/${lastMonthDate.getMonth() + 1}`}
+        </div>
+      );
+    }
+
+    // Các ngày trong tháng hiện tại
+    for (let i = 1; i <= totalDays; i++) {
+      const currentDate = new Date(currentYear, currentMonth, i);
+
+      // Kiểm tra nếu là ngày hiện tại
+      const isToday =
+        currentDate.getDate() === todayDate &&
+        currentDate.getMonth() === todayMonth &&
+        currentDate.getFullYear() === todayYear;
+
+      calendarDays.push(
+        <div
+          key={currentDate.toISOString()}
+          className={`day ${isToday ? "today" : ""}`}
+          onClick={() => handleDateClick(currentDate)}
+        >
+          {currentDate.getDate()}
+          {renderSchedules(currentDate)}
+        </div>
+      );
+    }
+
+    // Các ngày từ tháng sau (ô trống cuối lịch)
+    const remainingDays = (7 - ((totalDays + startDay) % 7)) % 7;
+    for (let i = 1; i <= remainingDays; i++) {
+      const nextMonthDate = new Date(currentYear, currentMonth + 1, i);
+      calendarDays.push(
+        <div key={`next-month-${i}`} className="day empty">
+          {`${nextMonthDate.getDate()} thg ${nextMonthDate.getMonth() + 1}`}
+        </div>
+      );
+    }
+
+    return calendarDays;
+  };
   const convertTime = (time12h) => {
     const regex = /(\d{1,2}):(\d{2})\s?(AM|PM)/i;
     const match = time12h.trim().match(regex);
@@ -623,8 +634,50 @@ const HomePage = () => {
 
     return `${hours}:${minutes} ${ampm}`;
   };
+  const populateTimeOptions = () => {
+    const times = [];
+    for (let hour = 0; hour < 24; hour++) {
+      const period = hour < 12 ? "AM" : "PM";
+      const displayHour = hour % 12 === 0 ? 12 : hour % 12;
+      const minutes = ["00", "30"];
+
+      minutes.forEach((minute) => {
+        const timeOption = `${displayHour}:${minute} ${period}`;
+        times.push(timeOption);
+      });
+    }
+    return times;
+  };
+
+  const timeOptions = populateTimeOptions();
+
+  const updateEndTimeOptions = (selectedStartTime) => {
+    const startIndex = timeOptions.findIndex(
+      (time) => time === selectedStartTime
+    );
+
+    const availableEndTimes = timeOptions.filter(
+      (time, index) => index > startIndex
+    );
+
+    setEndTimeOptions(availableEndTimes);
+
+    setFormData((prevData) => ({
+      ...prevData,
+      endTime: "",
+    }));
+
+    console.log("Available End Times:", availableEndTimes);
+  };
+
+  //
   const handleFreeTime = () => {
     navigate("/freeTime");
+  };
+  const handleLanguageChange = (e) => {
+    const newLang = e.target.value;
+    setSelectedLanguage(newLang);
+    setLanguage(newLang);
   };
 
   return (
@@ -633,45 +686,50 @@ const HomePage = () => {
         <button className="month-button previous" onClick={goToPreviousMonth}>
           &#60;
         </button>
-        <h1> {`Tháng ${currentMonth + 1}, ${currentYear}`}</h1>
+        <h1> {`${translations.month} ${currentMonth + 1}, ${currentYear}`}</h1>
         <button className="month-button next" onClick={gotoNextMonth}>
           &#62;
         </button>
-
-        <button className="" onClick={() => handleShareLink()}>
+        <button onClick={() => handleShareLink()}>
           <FontAwesomeIcon
-            icon={faSquareShareNodes}
+            icon={faShareFromSquare}
             style={{ fontSize: "25px" }}
           />
+          {translations.shared_link}
+        </button>
+        <button className="ml-4 " onClick={() => handleFreeTime()}>
+          <FontAwesomeIcon icon={faCalendar} style={{ fontSize: "25px" }} />
+          {translations.free_time}
         </button>
         <select
-          className="ml-4 p-2 border rounded"
+          className="ml-4 border p-2 rounded"
           value={selectedTimeZone}
           onChange={handleTimeZoneChange}
         >
           {timeZones.map((zone) => (
             <option key={zone} value={zone}>
-              {"Time Zone : " + zone}
+              {zone}
             </option>
           ))}
         </select>
-        <button className="ml-[55px]" onClick={() => handleFreeTime()}>
-          <FontAwesomeIcon icon={faCalendar} style={{ fontSize: "25px" }} />
-          Cấu hình lịch rảnh
-        </button>
-        <button className="ml-[55px] text-xl" onClick={() => logOut()}>
-          <FontAwesomeIcon
-            icon={faArrowAltCircleRight}
-            style={{ fontSize: "25px" }}
-          />{" "}
-          Logout
+
+        <select
+          className="ml-4 p-2 border rounded"
+          value={selectedLanguage}
+          onChange={handleLanguageChange}
+        >
+          <option value="vn">Tiếng Việt</option>
+          <option value="en">Tiếng Anh</option>
+        </select>
+
+        <button
+          className="ml-4 px-4 py-2 text-xl font-semibold text-white bg-blue-500 rounded hover:bg-blue-600 "
+          onClick={() => logOut()}
+        >
+          {translations.logout}
         </button>
       </div>
       <div className="grid">{renderCalendar()}</div>
-      <div className="flex justify-between">
-        <button>Cookies</button>
-        <button>Footer</button>
-      </div>
       {isModalVisible && (
         <div className="modal">
           <div className="modal-content">
@@ -681,31 +739,33 @@ const HomePage = () => {
             {selectedSchedule && (
               <div>
                 <p>
-                  <strong>Tiêu đề:</strong> {selectedSchedule.title}
+                  <strong>{translations.title}:</strong>{" "}
+                  {selectedSchedule.title}
                 </p>
                 <p>
-                  <strong>Thời gian bắt đầu:</strong>{" "}
+                  <strong>{translations.start_time}:</strong>{" "}
                   {new Date(selectedSchedule.start_time).toLocaleString()}
                 </p>
                 <p>
-                  <strong>Thời gian kết thúc:</strong>{" "}
+                  <strong>{translations.end_time}:</strong>{" "}
                   {new Date(selectedSchedule.end_time).toLocaleString()}
                 </p>
                 <p>
-                  <strong>Ưu tiên:</strong> {selectedSchedule.priority}
+                  <strong>{translations.priority}:</strong>{" "}
+                  {selectedSchedule.priority}
                 </p>
                 <div>
                   <button
                     className="mr-5 rounded-md border-4 w-20"
                     onClick={() => handleEdit(selectedSchedule)}
                   >
-                    Chỉnh sửa
+                    {translations.edit}
                   </button>
                   <button
                     className="rounded-md border-4 w-20"
                     onClick={() => handleDelete(selectedSchedule.id)}
                   >
-                    Xóa
+                    {translations.delete}
                   </button>
                 </div>
               </div>
@@ -713,6 +773,7 @@ const HomePage = () => {
           </div>
         </div>
       )}
+
       {/*  */}
       {isFreeTimeModalVisible && (
         <div className="modal">
@@ -725,24 +786,22 @@ const HomePage = () => {
             </span>
             {selectedFreeTime && (
               <div>
-                <p>Lịch Cấu Hình</p>
+                <p>{translations.free_time_config}</p>
+                <p>{translations.free_time_configuration}</p>
                 <p>
-                  <strong>Thời gian bắt đầu:</strong>{" "}
+                  <strong>{translations.start_time}:</strong>{" "}
                   {new Date(selectedFreeTime.free_time_start).toLocaleString()}
                 </p>
                 <p>
-                  <strong>Thời gian kết thúc:</strong>{" "}
+                  <strong>{translations.end_time}:</strong>{" "}
                   {new Date(selectedFreeTime.free_time_end).toLocaleString()}
-                </p>
-                <p>
-                  <strong>Ưu tiên:</strong> {selectedFreeTime.priority}
                 </p>
                 <div>
                   <button
                     className="rounded-md border-4 w-20"
                     onClick={() => handleDeleteFreeTime(selectedFreeTime.id)}
                   >
-                    Xóa
+                    {translations.delete}
                   </button>
                 </div>
               </div>
@@ -750,8 +809,8 @@ const HomePage = () => {
           </div>
         </div>
       )}
-      {/*  */}
 
+      {/*  */}
       {isModalBooking && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
           <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full relative">
@@ -764,28 +823,49 @@ const HomePage = () => {
             {selectedBookings && (
               <div className="text-center space-y-4">
                 <h2 className="text-2xl font-bold text-gray-800">
-                  Thông tin cuộc hẹn
+                  {translations["appointment_info"]}{" "}
+                  {/* Dịch thông tin cuộc hẹn */}
                 </h2>
                 <div className="text-left">
                   <p className="text-lg">
-                    <span className="font-semibold">Tên khách hàng:</span>{" "}
+                    <span className="font-semibold">
+                      {translations["guest_name"]}:
+                    </span>{" "}
                     {selectedBookings.guest_name}
                   </p>
                   <p className="text-lg">
-                    <span className="font-semibold">Email:</span>{" "}
+                    <span className="font-semibold">
+                      {translations["email"]}:
+                    </span>{" "}
                     {selectedBookings.guest_email}
                   </p>
                   <p className="text-lg">
                     <span className="font-semibold">
-                      Thời gian bắt đầu cuộc hẹn:
+                      {translations["start_time"]}:
                     </span>{" "}
-                    {new Date(selectedBookings.start_time).toLocaleString()}
+                    {new Date(
+                      selectedBookings.free_time_config.free_time_start
+                    ).toLocaleString(language === "en" ? "en-US" : "vi-VN", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                    })}
                   </p>
                   <p className="text-lg">
                     <span className="font-semibold">
-                      Thời gian kết thúc cuộc hẹn:
+                      {translations["end_time"]}:
                     </span>{" "}
-                    {new Date(selectedBookings.end_time).toLocaleString()}
+                    {new Date(
+                      selectedBookings.free_time_config.free_time_end
+                    ).toLocaleString(language === "en" ? "en-US" : "vi-VN", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                    })}
                   </p>
                 </div>
               </div>
@@ -807,22 +887,37 @@ const HomePage = () => {
               <div className="space-y-4">
                 <div className="text-left space-y-3">
                   <p className="font-semibold text-lg">
-                    Tên khách: <span>{selectedBookings.guest_name}</span>
+                    {translations["guest_name"]}:{" "}
+                    <span>{selectedBookings.guest_name}</span>
                   </p>
                   <p className="font-semibold text-lg">
-                    Email: <span>{selectedBookings.guest_email}</span>
+                    {translations["email"]}:{" "}
+                    <span>{selectedBookings.guest_email}</span>
                   </p>
                   <p className="font-semibold text-lg">
-                    Thời gian:{" "}
+                    {translations["time"]}:{" "}
                     <span>
-                      {new Date(selectedBookings.start_time).toLocaleString()} -{" "}
-                      {new Date(selectedBookings.end_time).toLocaleString()}
+                      {new Date(
+                        selectedBookings.free_time_config.free_time_start
+                      ).toLocaleString(language === "en" ? "en-US" : "vi-VN", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        second: "2-digit",
+                      })}{" "}
+                      -{" "}
+                      {new Date(
+                        selectedBookings.free_time_config.free_time_end
+                      ).toLocaleString(language === "en" ? "en-US" : "vi-VN", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        second: "2-digit",
+                      })}
                     </span>
                   </p>
                   <p className="font-semibold text-lg">
-                    Nội dung công việc:{" "}
+                    {translations["task_content"]}:{" "}
                     <span>
-                      {selectedBookings.content || "Không có nội dung"}
+                      {selectedBookings.content || translations["no_content"]}
                     </span>
                   </p>
                 </div>
@@ -832,13 +927,13 @@ const HomePage = () => {
                     className="text-blue-500 font-semibold hover:underline"
                     onClick={() => handleAcceptBooking(selectedBookings)}
                   >
-                    Chấp nhận
+                    {translations["accept"]}
                   </button>
                   <button
                     className="text-black font-semibold hover:underline"
                     onClick={() => handleRejectBooking(selectedBookings)}
                   >
-                    Từ chối
+                    {translations["reject"]}
                   </button>
                 </div>
               </div>
@@ -857,7 +952,7 @@ const HomePage = () => {
               />
             </div>
             <div className="form-input">
-              <div className="text-xl font-bold">Tiêu đề</div>
+              <div className="text-xl font-bold">{translations["title"]}</div>
               <label className="title-input">
                 <input
                   type="text"
@@ -867,7 +962,9 @@ const HomePage = () => {
                   required
                 />
               </label>
-              <div className="text-xl font-bold mb-5">Thời Gian</div>
+              <div className="text-xl font-bold mb-5">
+                {translations["time"]}
+              </div>
               <div className="time-input mb-5">
                 <select
                   id="startTime"
@@ -884,7 +981,7 @@ const HomePage = () => {
                   }}
                   required
                 >
-                  <option value="">-- Chọn giờ bắt đầu --</option>
+                  <option value="">{translations["select_start_time"]}</option>
                   {timeOptions.map((time) => (
                     <option key={time} value={time}>
                       {time}
@@ -905,7 +1002,7 @@ const HomePage = () => {
                   required={!!formData.startTime}
                   disabled={!formData.startTime} // Chỉ cho phép chọn khi có giá trị startTime
                 >
-                  <option value="">-- Chọn giờ kết thúc --</option>
+                  <option value="">{translations["select_end_time"]}</option>
                   {endTimeOptions.map((time) => (
                     <option key={time} value={time}>
                       {time}
@@ -914,7 +1011,9 @@ const HomePage = () => {
                 </select>
               </div>
               <div className="importance-level">
-                <label className="text-xl font-bold">Mức độ quan trọng</label>
+                <label className="text-xl font-bold">
+                  {translations["priority_level"]}
+                </label>
                 <div className="importance-options">
                   <label>
                     <input
@@ -924,7 +1023,7 @@ const HomePage = () => {
                       checked={formData.priority === "high"}
                       onChange={handleInputChange}
                     />
-                    <span className="high">High</span>
+                    <span className="high">{translations["high"]}</span>
                   </label>
                   <label>
                     <input
@@ -934,7 +1033,7 @@ const HomePage = () => {
                       checked={formData.priority === "medium"}
                       onChange={handleInputChange}
                     />
-                    <span className="medium">Medium</span>
+                    <span className="medium">{translations["medium"]}</span>
                   </label>
                   <label>
                     <input
@@ -944,7 +1043,7 @@ const HomePage = () => {
                       checked={formData.priority === "low"}
                       onChange={handleInputChange}
                     />
-                    <span className="low">Low</span>
+                    <span className="low">{translations["low"]}</span>
                   </label>
                 </div>
               </div>
@@ -955,15 +1054,16 @@ const HomePage = () => {
                   checked={formData.notification_time}
                   onChange={handleInputChange}
                 />
-                Nhận thông báo khi gần đến
+                {translations["notification_text"]}
               </label>
             </div>
             <div className="flex justify-end">
-              <button className="button-form">OK</button>
+              <button className="button-form">{translations["update"]}</button>
             </div>
           </form>
         </div>
       )}
+
       {/*  */}
       {/*  */}
       {/*  */}
@@ -978,7 +1078,7 @@ const HomePage = () => {
               />
             </div>
             <div className="form-input">
-              <div className="font-bold text-xl">Tiêu đề</div>
+              <div className="font-bold text-xl">{translations["title"]}</div>
               <label className="title-input">
                 <input
                   type="text"
@@ -989,7 +1089,10 @@ const HomePage = () => {
                 />
               </label>
               <div className="time-input">
-                <div className="text-xl font-bold mb-5">Thời Gian</div>
+                <div className="text-xl font-bold mb-5">
+                  {" "}
+                  {translations["time"]}
+                </div>
                 <select
                   id="updateStartTime"
                   name="updateStartTime"
@@ -1005,7 +1108,7 @@ const HomePage = () => {
                   }}
                   required
                 >
-                  <option value="">-- Chọn giờ bắt đầu --</option>
+                  <option value="">{translations["select_start_time"]}</option>
                   {timeOptions.map((time) => (
                     <option key={time} value={time}>
                       {time}
@@ -1027,7 +1130,7 @@ const HomePage = () => {
                   required={!!formDataEdit.updateStartTime}
                   disabled={!formDataEdit.updateStartTime} // Chỉ cho phép chọn khi có giá trị startTime
                 >
-                  <option value="">-- Chọn giờ kết thúc --</option>
+                  <option value="">{translations["select_end_time"]}</option>
                   {endTimeOptions.map((time) => (
                     <option key={time} value={time}>
                       {time}
@@ -1037,7 +1140,7 @@ const HomePage = () => {
               </div>
               <div className="importance-level">
                 <label className="font-bold text-xl mt-5">
-                  Mức độ quan trọng
+                  {translations["priority_level"]}
                 </label>
                 <div className="importance-options">
                   <label>
@@ -1048,7 +1151,7 @@ const HomePage = () => {
                       checked={formDataEdit.updatePriority === "high"}
                       onChange={handleUpdateInputChange}
                     />
-                    <span className="high">High</span>
+                    <span className="high">{translations["high"]}</span>
                   </label>
                   <label>
                     <input
@@ -1058,7 +1161,7 @@ const HomePage = () => {
                       checked={formDataEdit.updatePriority === "medium"}
                       onChange={handleUpdateInputChange}
                     />
-                    <span className="medium">Medium</span>
+                    <span className="medium">{translations["medium"]}</span>
                   </label>
                   <label>
                     <input
@@ -1068,7 +1171,7 @@ const HomePage = () => {
                       checked={formDataEdit.updatePriority === "low"}
                       onChange={handleUpdateInputChange}
                     />
-                    <span className="low">Low</span>
+                    <span className="low">{translations["low"]}</span>
                   </label>
                 </div>
               </div>
@@ -1079,11 +1182,13 @@ const HomePage = () => {
                   checked={formDataEdit.updateNotification_time}
                   onChange={handleUpdateInputChange}
                 />
-                <p>Nhận thông báo khi gần đến</p>
+                <p>{translations.notification_text}</p>
               </label>
             </div>
             <div className="flex justify-end">
-              <button className="button-form font-bold text-xl">Update</button>
+              <button className="button-form font-bold text-xl">
+                {translations["update"]}
+              </button>
             </div>
           </form>
         </div>
@@ -1098,13 +1203,85 @@ const HomePage = () => {
               &times;
             </button>
             <h2 className="text-lg font-bold text-center mb-4">
-              Shared Link Calendar
+              {translations.my_link}
             </h2>
             <p className="text-center mt-4 font-semibold border">
               <a href={link} target="_blank" rel="noopener noreferrer">
                 {link}
               </a>
             </p>
+          </div>
+        </div>
+      )}
+      {isRemainingSchedulesModalVisible && (
+        <div className="modal">
+          <div className="modal-content">
+            <ul>
+              {selectedRemainingSchedules.map((schedule) => (
+                <li key={schedule.id} className="mb-2">
+                  <button
+                    className={`w-full py-2 px-4 rounded border text-white ${
+                      schedule.type === "booking"
+                        ? schedule.status === "pending"
+                          ? "bg-yellow-500 hover:bg-yellow-600"
+                          : schedule.status === "approved"
+                          ? "bg-green-600 hover:bg-green-700"
+                          : "bg-gray-400 hover:bg-gray-500"
+                        : schedule.type === "freeTime"
+                        ? "bg-blue-500 hover:bg-blue-600"
+                        : schedule.type === "schedule"
+                        ? "bg-red-600"
+                        : "bg-gray-300"
+                    }`}
+                    onClick={() => {
+                      handleScheduleClick(schedule);
+                      setIsRemainingSchedulesModalVisible(false);
+                    }} // Thêm hành động khi click vào schedule
+                  >
+                    {schedule.type === "booking" ? (
+                      schedule.status === "pending" ? (
+                        <span>{translations.confirm_appointment}</span>
+                      ) : (
+                        `${translations.appointment_with} : ${schedule.guest_name}`
+                      )
+                    ) : schedule.type === "freeTime" ? (
+                      `${translations.available} ` +
+                      new Date(schedule.free_time_start).toLocaleTimeString(
+                        "vi-VN",
+                        {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        }
+                      ) +
+                      " - " +
+                      new Date(schedule.free_time_end).toLocaleTimeString(
+                        "vi-VN",
+                        {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        }
+                      )
+                    ) : (
+                      schedule.title +
+                      " - " +
+                      new Date(schedule.start_time).toLocaleTimeString(
+                        "vi-VN",
+                        {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        }
+                      )
+                    )}
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <button
+              className="rounded border bg-blue-600 px-3 py-2 text-white mt-4"
+              onClick={() => setIsRemainingSchedulesModalVisible(false)}
+            >
+              {translations.close}
+            </button>
           </div>
         </div>
       )}

@@ -94,6 +94,9 @@
   margin: 15% auto;
   padding: 20px;
   border: 1px solid #888;
+  max-height: 99%; /* Giới hạn chiều cao modal */
+  width: 80%; /* Chiều rộng của modal */
+  overflow-y: auto; /* Thêm thanh cuộn dọc nếu phần tử vượt quá chiều cao */
 }
 
 .close {

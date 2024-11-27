@@ -90,7 +90,10 @@ const FreeTimeForm = () => {
       const result = await createfreeTime(data);
       console.log(result);
       if (result.data.ER === 0) {
-        alert("add free time successfully, go to home page to detail");
+        alert("Đã thêm lịch thành công, quay về trang chủ để xem");
+      }
+      if (result.data.ER === 1) {
+        alert("Lịch thêm đã tồn tại, vui lòng thử lại");
       }
       setSelectedDate("");
       setStartTime("");

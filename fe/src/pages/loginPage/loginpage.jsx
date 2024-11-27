@@ -7,17 +7,17 @@ import { loginAPI } from "./../../util/api";
 const LoginPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const { setAuth } = useContext(AuthContext);
+  const { setAuth, translations, setLanguage, language } =
+    useContext(AuthContext);
   const navigate = useNavigate();
 
   const focusPlaceholder = (inputId) => {
     document.querySelector(`#${inputId}`).focus();
   };
+
   useEffect(() => {
-    // Kiểm tra localStorage khi component được khởi tạo
     const storedUser = JSON.parse(localStorage.getItem("info"));
     if (storedUser && storedUser.data) {
-      // Tự động thiết lập trạng thái đăng nhập và chuyển hướng đến /calendar
       setAuth({
         isAuthenticated: true,
         user: {
@@ -45,7 +45,7 @@ const LoginPage = () => {
 
         localStorage.setItem("info", JSON.stringify({ data: user.data }));
         navigate("/calendar");
-      }
+      } else alert("Email/password is incorrect");
     } catch (error) {
       console.log("Error logging in:", error);
     }
@@ -56,10 +56,15 @@ const LoginPage = () => {
     login();
   };
 
+  const changeLanguage = (event) => {
+    const lang = event.target.value;
+    setLanguage(lang);
+  };
+
   return (
     <div className="login-container">
-      <span className="h-12 text-[40px] font-bol mb-[41px] block text-center">
-        Login
+      <span className="h-12 text-[40px] font-bold mb-[41px] block text-center">
+        {translations.login}
       </span>
       <form onSubmit={handleSubmit} className="flex flex-col items-center">
         <div
@@ -75,7 +80,7 @@ const LoginPage = () => {
             onChange={(e) => setEmail(e.target.value)}
           />
           <label htmlFor="email" className="placeholder">
-            Email
+            {translations.email}
           </label>
         </div>
         <div
@@ -91,14 +96,24 @@ const LoginPage = () => {
             onChange={(e) => setPassword(e.target.value)}
           />
           <label htmlFor="password" className="placeholder">
-            Password
+            {translations.password}
           </label>
         </div>
-        <Link className="mb-[19px] block text-[15px]" to={"/register"}>
-          Register here.
-        </Link>
+        <div className="flex items-center mb-[19px]">
+          <Link className="block text-[15px]" to={"/register"}>
+            {translations.register_here}
+          </Link>
+          <select
+            value={language}
+            onChange={changeLanguage}
+            className="language-select ml-4"
+          >
+            <option value="en">English</option>
+            <option value="vn">Tiếng Việt</option>
+          </select>
+        </div>
         <button type="submit" className="submit-button">
-          Login
+          {translations.login}
         </button>
       </form>
     </div>

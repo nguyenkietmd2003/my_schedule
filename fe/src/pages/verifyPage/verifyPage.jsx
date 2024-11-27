@@ -13,11 +13,10 @@ const VerifyPage = () => {
   };
   const register = async (email, name, password) => {
     try {
-      const result = await verifyOtp(email, name, password, otp); // chua validate data
-      console.log(result);
+      const result = await verifyOtp(email, name, password, otp);
       if (result.data.ER === 0) {
         navigate("/");
-      }
+      } else alert("Otp verification failed");
     } catch (error) {
       console.log(error);
     }
@@ -55,8 +54,9 @@ const VerifyPage = () => {
             id="otp"
             placeholder=""
             className="input-field"
-            value={otp} // Liên kết với trạng thái
-            onChange={(e) => setOtp(e.target.value)} // Cập nhật trạng thái khi thay đổi
+            value={otp}
+            onChange={(e) => setOtp(e.target.value)}
+            required
           />
           <label htmlFor="name" className="placeholder"></label>
         </div>

@@ -1,12 +1,24 @@
-import { useEffect, useState } from "react";
-import { booking, bookingg, getInfoByLink } from "../../util/api";
+import { useContext, useEffect, useState } from "react";
+import {
+  booking,
+  bookingg,
+  getInfoByLink,
+  sendOtp,
+  sendOtpBooking,
+} from "../../util/api";
 import { useParams } from "react-router-dom";
 import "../homepage/homepage1.css";
 import "../homepage/homepage2.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCircleXmark } from "@fortawesome/free-solid-svg-icons";
+import { AuthContext } from "../../context/wrapContext";
 
 const SharePage = () => {
+  const { translations, setLanguage } = useContext(AuthContext);
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedTimeZone, setSelectedTimeZone] = useState("Asia/Bangkok");
+  const [selectedLanguage, setSelectedLanguage] = useState("VN");
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [formData, setFormData] = useState({
@@ -15,12 +27,20 @@ const SharePage = () => {
     company: "",
     content: "",
   });
+  const [formDataOTP, setFormDataOTP] = useState({
+    otp: null,
+  });
+  const [isFormVerifyEmail, setIsFormVerifyEmail] = useState(false);
   const [selectSchedule, setSelectSchedule] = useState(null);
-  const [userID, setUserID] = useState(0);
   const [selectedDate, setSelectedDate] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [selectedSchedule, setSelectedSchedule] = useState(null);
+  const [infoUser, setInfoUser] = useState({
+    name: "",
+    email: "",
+  });
+
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isSuccessNotificationVisible, setIsSuccessNotificationVisible] =
     useState(false);
@@ -34,12 +54,10 @@ const SharePage = () => {
         const data = await getInfoByLink(randomString);
         console.log(data);
         const schedule = data?.data?.schedule || [];
+        const userInfo = data?.data?.getUser || null;
+        console.log(userInfo);
         setApiSchedules(schedule);
-        console.log(schedule);
-
-        const userId = schedule.length > 0 ? schedule[0].user_id : 0;
-        console.log("id", userId);
-        setUserID(userId);
+        setInfoUser(userInfo);
       } catch (error) {
         console.log(error);
       }
@@ -64,11 +82,6 @@ const SharePage = () => {
       setCurrentMonth((prevMonth) => prevMonth + 1);
     }
   };
-
-  const handleScheduleClick = (schedule) => {
-    setSelectedSchedule(schedule);
-    setIsModalVisible(true);
-  };
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData((prevData) => ({
@@ -76,6 +89,14 @@ const SharePage = () => {
       [name]: type === "checkbox" ? checked : value,
     }));
   };
+  const handleInputOtpChange = (e) => {
+    const { name, value } = e.target;
+    setFormDataOTP((prevData) => ({
+      ...prevData,
+      [name]: name === "otp" ? Number(value) : value, // Chuyển value thành number nếu là otp
+    }));
+  };
+
   const daysInMonth = (month, year) => {
     return new Date(year, month + 1, 0).getDate();
   };
@@ -185,7 +206,6 @@ const SharePage = () => {
   const getScheduledDays = () => {
     // Ngày hiện tại theo định dạng địa phương
     const today = new Date();
-    const dateString = today.toLocaleDateString();
 
     // Kiểm tra xem apiSchedules có phải là một mảng không
     if (!Array.isArray(apiSchedules)) {
@@ -212,65 +232,48 @@ const SharePage = () => {
       email: "",
       content: "",
     });
+    setFormDataOTP({ otp: "" });
+    setIsFormVisible(false);
+    setIsFormVerifyEmail(false);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const data = { guest_email: formData.email };
+    try {
+      const result = await sendOtpBooking(data);
+      console.log(result);
+      if (result.data.ER == 0) {
+        setIsFormVerifyEmail(true);
+      } else {
+        alert("Đặt lịch không thành công, trùng thời gian bận của khách hàng");
+        console.log("Error creating Schedule");
+      }
+    } catch (error) {
+      console.error("Lỗi khi tạo lịch làm việc:", error);
+    }
     setIsFormVisible(false);
   };
 
-  const convertDate = (dateString) => {
-    const date = new Date(dateString);
-
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-
-    return `${year}-${month}-${day}`;
-  };
-
-  const convertTime = (time12h) => {
-    const regex = /(\d{1,2}):(\d{2})\s?(AM|PM)/i;
-    const match = time12h.trim().match(regex);
-
-    if (match) {
-      let hours = parseInt(match[1], 10);
-      const minutes = match[2];
-      const period = match[3].toUpperCase();
-
-      if (period === "PM" && hours !== 12) {
-        hours += 12;
-      } else if (period === "AM" && hours === 12) {
-        hours = 0;
-      }
-
-      const time24h = `${hours.toString().padStart(2, "0")}:${minutes}:00`;
-      return time24h;
-    } else {
-      console.log("Loi Convert time");
-    }
-  };
-  const handleSubmit = async (e) => {
+  const handleSubmitBooking = async (e) => {
     e.preventDefault();
-    console.log(formData);
-    console.log(selectedSchedule);
     const newBooking = {
       free_time_config_id: selectSchedule.id,
       guest_name: formData.name,
       guest_email: formData.email,
       content: formData.content,
       name_company: formData.company,
+      verificationCode: formDataOTP.otp,
     };
     try {
+      console.log("bookig", newBooking);
       const result = await bookingg(newBooking);
-      console.log("Data trước khi call API booking ", newBooking);
       console.log(result);
-      if (result.status === 200) {
-        setIsSuccessNotificationVisible(true);
+      if (result.data.ER == 0) {
         resetForm();
+        setIsSuccessNotificationVisible(true);
       } else {
-        if (result.status === 400) {
-          alert(
-            "Đặt lịch không thành công, trùng thời gian bận của khách hàng"
-          );
-        }
-        console.log("Error creating Schedule");
+        alert("Mã sác thực không đúng");
       }
     } catch (error) {
       console.error("Lỗi khi tạo lịch làm việc:", error);
@@ -284,21 +287,96 @@ const SharePage = () => {
     setIsModalVisible(false);
   };
 
+  const handleLanguageChange = (e) => {
+    const newLang = e.target.value;
+    setSelectedLanguage(newLang);
+    setLanguage(newLang);
+  };
+  const handleButtonClick = () => {
+    setIsModalOpen(true); // Mở modal
+  };
+
+  const closeModalUser = () => {
+    setIsModalOpen(false); // Đóng modal
+  };
+  const timeZones = ["Asia/Bangkok", "Asia/Kolkata", "Asia/Tokyo"];
+  const handleTimeZoneChange = (e) => {
+    setSelectedTimeZone(e.target.value); // Cập nhật state khi người dùng chọn múi giờ mới
+  };
+
   return (
     <div className="calendar">
       <div className="header">
+        <button
+          className="font-bold px-4 py-2 text-2xl underline"
+          onClick={handleButtonClick}
+        >
+          {infoUser ? `${infoUser.name} Calendar` : "Loading..."}
+        </button>
+
         <button className="month-button previous" onClick={goToPreviousMonth}>
           &#60;
         </button>
-        <h1> {`Tháng ${currentMonth + 1}, ${currentYear}`}</h1>
+        <h1> {`${translations.month} ${currentMonth + 1}, ${currentYear}`}</h1>
         <button className="month-button next" onClick={gotoNextMonth}>
           &#62;
         </button>
-        <button className="appointment border w-[110px] h-[30px] rounded-2xl mr-[55px]">
-          Lịch Hẹn
-        </button>
+        <select
+          className="ml-4 border p-2 rounded"
+          value={selectedTimeZone}
+          onChange={handleTimeZoneChange}
+        >
+          {timeZones.map((zone) => (
+            <option key={zone} value={zone}>
+              {zone}
+            </option>
+          ))}
+        </select>
+
+        <select
+          className="ml-4 p-2 border rounded"
+          value={selectedLanguage}
+          onChange={handleLanguageChange}
+        >
+          <option value="vn">Tiếng Việt</option>
+          <option value="en">Tiếng Anh</option>
+        </select>
       </div>
+
       <div className="grid">{renderCalendar()}</div>
+      {/* <div className="flex justify-center">
+        <div>Chính sách quyền riêng tư và cookies</div>
+      </div> */}
+      <div className="bg-gray-100 text-gray-800 py-6 border border-black">
+        <div className="container mx-auto px-4">
+          <div className="flex flex-wrap justify-between items-center">
+            {/* Section 1: Logo or Title */}
+            <div className="mb-4 md:mb-0">
+              <h2 className="text-xl font-bold">📅 Calendar App</h2>
+              <p className="text-sm">Plan your days, organize your life.</p>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-semibold">Privacy and Cookies</h3>
+              <button
+                onClick={() => alert("Privacy and Cookies Policy")}
+                className="mt-2 p-2 bg-slate-400 hover:bg-slate-600 text-white rounded-md"
+              >
+                View Policy
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-6 border-t border-black pt-4 text-center">
+            <p>
+              &copy; {new Date().getFullYear()} Calendar App. All rights
+              reserved.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/*  */}
       {isFormVisible && (
         <div className="form-overlay">
           <form className="schedule-form" onSubmit={handleSubmit}>
@@ -331,7 +409,7 @@ const SharePage = () => {
                 />
               </label>
 
-              <div className="font-bold text-xl"> Nội dung</div>
+              <div className="font-bold text-xl"> Nội dung cuộc họp</div>
               <label className="title-input">
                 <input
                   type="text"
@@ -348,6 +426,33 @@ const SharePage = () => {
                   name="company"
                   value={formData.company}
                   onChange={handleInputChange}
+                  required
+                />
+              </label>
+            </div>
+            <div className="flex justify-end">
+              <button className="button-form">Gửi</button>
+            </div>
+          </form>
+        </div>
+      )}
+      {isFormVerifyEmail && (
+        <div className="form-overlay">
+          <form className="schedule-form" onSubmit={handleSubmitBooking}>
+            <div className="close-form" onClick={() => resetForm()}>
+              <FontAwesomeIcon
+                icon={faCircleXmark}
+                style={{ fontSize: "30px" }}
+              />
+            </div>
+            <div className="form-input">
+              <div className="font-bold text-xl">Xác thực OTP</div>
+              <label className="title-input">
+                <input
+                  type="number"
+                  name="otp"
+                  value={formDataOTP.otp}
+                  onChange={handleInputOtpChange}
                   required
                 />
               </label>
@@ -412,6 +517,27 @@ const SharePage = () => {
           </div>
         </div>
       )}
+      {isModalOpen && (
+        <div className="modal">
+          <div className="modal-content">
+            <h2>Thông tin người dùng</h2>
+            {infoUser ? (
+              <ul>
+                <li>Tên: {infoUser.name}</li>
+                <li>Email: {infoUser.email}</li>
+              </ul>
+            ) : (
+              <p>Loading...</p>
+            )}
+            <button
+              className="rounded border font-bold bg-blue-400 px-4 py-2 mt-4"
+              onClick={closeModalUser}
+            >
+              Đóng
+            </button>
+          </div>
+        </div>
+      )}
 
       {showModal && (
         <div className="modal">
@@ -430,15 +556,23 @@ const SharePage = () => {
                 {selectedSchedule.map((schedule) => (
                   <div
                     key={schedule.id}
-                    className="schedule-option"
+                    className="schedule-option px-4 py-2 bg-blue-500 text-white rounded-lg shadow-md cursor-pointer hover:bg-blue-600 w-fit"
                     onClick={() => handleScheduleSelect(schedule)}
                   >
                     {`${new Date(schedule.free_time_start).toLocaleTimeString(
                       "vi-VN",
-                      { hour: "2-digit", minute: "2-digit" }
-                    )} -${new Date(schedule.free_time_end).toLocaleTimeString(
+                      {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        timeZone: selectedTimeZone, // Áp dụng múi giờ được chọn
+                      }
+                    )} - ${new Date(schedule.free_time_end).toLocaleTimeString(
                       "vi-VN",
-                      { hour: "2-digit", minute: "2-digit" }
+                      {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        timeZone: selectedTimeZone, // Áp dụng múi giờ được chọn
+                      }
                     )}`}
                   </div>
                 ))}

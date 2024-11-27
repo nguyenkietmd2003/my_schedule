@@ -1,21 +1,24 @@
-import { useContext, useState } from "react"; // Nhập useState từ React
+import { useContext, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "./registerPage.css";
 import { sendOtp } from "../../util/api";
 import { AuthContext } from "../../context/wrapContext";
 
 const RegisterPage = () => {
-  const [name, setName] = useState(""); // Trạng thái cho tên
-  const [email, setEmail] = useState(""); // Trạng thái cho email
-  const [password, setPassword] = useState(""); // Trạng thái cho mật khẩu
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const navigate = useNavigate();
-  const { setInfoRegister } = useContext(AuthContext);
+  const { setInfoRegister, translations } = useContext(AuthContext);
+
   const focusPlaceholder = (inputId) => {
     document.querySelector(`#${inputId}`).focus();
   };
+
   const register = async (name, password, email) => {
     try {
       const result = await sendOtp(email);
+      console.log(result);
       if (result.data.ER === 0 || result.data.ER === 1) {
         setInfoRegister({
           name,
@@ -23,7 +26,7 @@ const RegisterPage = () => {
           password,
         });
         navigate("/verify");
-      }
+      } else alert("vui long nhap day du thong tin");
     } catch (error) {
       console.log(error);
     }
@@ -37,7 +40,7 @@ const RegisterPage = () => {
   return (
     <div className="register-container">
       <span className="h-12 text-[40px] font-bol mb-[32.75px] block text-center">
-        Signup
+        {translations.signup}
       </span>
       <form
         action=""
@@ -53,11 +56,12 @@ const RegisterPage = () => {
             id="name"
             placeholder=""
             className="input-field"
-            value={name} // Liên kết với trạng thái
-            onChange={(e) => setName(e.target.value)} // Cập nhật trạng thái khi thay đổi
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
           />
           <label htmlFor="name" className="placeholder">
-            Name
+            {translations.name} {/* Sử dụng bản dịch */}
           </label>
         </div>
         <div
@@ -69,11 +73,12 @@ const RegisterPage = () => {
             id="email"
             placeholder=""
             className="input-field"
-            value={email} // Liên kết với trạng thái
-            onChange={(e) => setEmail(e.target.value)} // Cập nhật trạng thái khi thay đổi
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
           />
           <label htmlFor="email" className="placeholder">
-            Email
+            {translations.email}
           </label>
         </div>
         <div
@@ -85,16 +90,17 @@ const RegisterPage = () => {
             id="password"
             placeholder=""
             className="input-field"
-            value={password} // Liên kết với trạng thái
-            onChange={(e) => setPassword(e.target.value)} // Cập nhật trạng thái khi thay đổi
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
           />
           <label htmlFor="password" className="placeholder">
-            Password
+            {translations.password}
           </label>
         </div>
 
         <button type="submit" className="submit-button">
-          Signup
+          {translations.signup}
         </button>
       </form>
     </div>

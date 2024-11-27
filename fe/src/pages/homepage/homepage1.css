@@ -3,7 +3,7 @@
   color: #fff;
   padding: 5px;
   border-radius: 4px;
-  font-size: 1em;
+  font-size: 12px;
   margin-top: 5px;
   text-align: left;
   white-space: nowrap;
@@ -138,7 +138,7 @@
 }
 
 .previous {
-  margin-left: 366px;
+  margin-left: 200px;
   margin-right: 50px;
   font-size: 40px;
 }
@@ -146,7 +146,7 @@
 .next {
   margin-left: 50px;
   font-size: 40px;
-  margin-right: 105px;
+  margin-right: 50px;
 }
 .notification-success {
   position: fixed;

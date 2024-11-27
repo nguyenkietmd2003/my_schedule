@@ -7,6 +7,8 @@ import {
   booking,
   acceptBookingg,
   rejectBookingg,
+  bookingg,
+  requestEmailVerification,
 } from "../controllers/appointmentController.js";
 
 const appointmentRouter = express.Router();
@@ -18,6 +20,8 @@ appointmentRouter.post("/reject-booking/:id", rejectBooking);
 //v2
 
 appointmentRouter.post("/booking", booking);
+appointmentRouter.post("/bookingg", bookingg);
+appointmentRouter.post("/sendotp", requestEmailVerification);
 appointmentRouter.post("/accept/:id", acceptBookingg);
 appointmentRouter.post("/reject/:id", rejectBookingg);
 export default appointmentRouter;

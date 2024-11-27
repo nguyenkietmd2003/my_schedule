@@ -3,10 +3,47 @@ import {
   acceptBookingServicee,
   bookAppointmentService,
   bookingService,
+  createBookingService,
   getBookingByUserIDService,
   rejectBookingServicee,
   rejectedBookingService,
+  requestEmailVerificationService,
 } from "./../services/appointmentService.js";
+
+export const bookingg = async (req, res) => {
+  const {
+    free_time_config_id,
+    guest_name,
+    guest_email,
+    content,
+    name_company,
+    verificationCode,
+  } = req.body;
+  try {
+    const result = await createBookingService(
+      free_time_config_id,
+      guest_name,
+      guest_email,
+      content,
+      name_company,
+      verificationCode
+    );
+    return res.status(200).json({ status: 200, data: result });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+export const requestEmailVerification = async (req, res) => {
+  const { guest_email } = req.body;
+  try {
+    const result = await requestEmailVerificationService(guest_email);
+    return res.status(200).json({ status: 200, data: result });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+///
 
 export const booking = async (req, res) => {
   const {

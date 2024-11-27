@@ -241,12 +241,15 @@ export const getScheduleShareLinkService = async (randomString) => {
     const schedule = await model.FreeTimeConfiguration.findAll({
       where: { user_id: publicLink.user_id },
     });
+    const getUser = await model.User.findOne({
+      where: { id: publicLink.user_id },
+    });
 
     if (!schedule) {
       return { message: "Không tìm thấy lịch." };
     }
 
-    return { schedule };
+    return { schedule, getUser };
   } catch (error) {
     throw error;
   }

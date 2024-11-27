@@ -1,6 +1,7 @@
 import _sequelize from "sequelize";
 const DataTypes = _sequelize.DataTypes;
 import _Booking from  "./Booking.js";
+import _EmailVerification from  "./EmailVerification.js";
 import _FreeTimeConfiguration from  "./FreeTimeConfiguration.js";
 import _Notification from  "./Notification.js";
 import _OTP from  "./OTP.js";
@@ -10,6 +11,7 @@ import _WorkSchedule from  "./WorkSchedule.js";
 
 export default function initModels(sequelize) {
   const Booking = _Booking.init(sequelize, DataTypes);
+  const EmailVerification = _EmailVerification.init(sequelize, DataTypes);
   const FreeTimeConfiguration = _FreeTimeConfiguration.init(sequelize, DataTypes);
   const Notification = _Notification.init(sequelize, DataTypes);
   const OTP = _OTP.init(sequelize, DataTypes);
@@ -32,6 +34,7 @@ export default function initModels(sequelize) {
 
   return {
     Booking,
+    EmailVerification,
     FreeTimeConfiguration,
     Notification,
     OTP,

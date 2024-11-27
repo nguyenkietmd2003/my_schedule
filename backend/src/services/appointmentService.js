@@ -5,6 +5,73 @@ import { sendEmail } from "./sendEmailService.js";
 let model = initModels(sequelize);
 //
 
+export const createBookingService = async (
+  free_time_config_id,
+  guest_name,
+  guest_email,
+  content,
+  name_company,
+  verificationCode
+) => {
+  try {
+    const verificationRecord = await model.EmailVerification.findOne({
+      where: { email: guest_email },
+    });
+
+    if (!verificationRecord || verificationRecord.code !== verificationCode) {
+      return { message: "Mã xác thực không hợp lệ", ER: 1 };
+    }
+
+    const newBooking = await model.Booking.create({
+      free_time_config_id,
+      guest_name,
+      guest_email,
+      content,
+      name_company,
+      status: "pending",
+    });
+
+    return {
+      message: "Booking created successfully",
+      ER: 0,
+      data: newBooking,
+    };
+  } catch (error) {
+    throw error;
+  }
+};
+
+//
+export const requestEmailVerificationService = async (guest_email) => {
+  try {
+    const verificationCode = generateVerificationCode();
+
+    await model.EmailVerification.upsert({
+      email: guest_email,
+      code: verificationCode,
+      expiresAt: new Date(new Date().getTime() + 15 * 60000),
+    });
+
+    await sendEmail(
+      guest_email,
+      `Email Verification Code : ${verificationCode}`,
+      `This code is valid for 15 minutes. If you did not request this verification, please ignore this email.`
+    );
+
+    return {
+      message: "Mã xác thực đã được gửi qua email",
+      ER: 0,
+      data: verificationCode,
+    };
+  } catch (error) {
+    throw error;
+  }
+};
+const generateVerificationCode = () => {
+  return Math.floor(100000 + Math.random() * 900000);
+};
+
+//
 export const bookingService = async (
   free_time_config_id,
   guest_name,

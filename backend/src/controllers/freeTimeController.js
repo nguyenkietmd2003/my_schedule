@@ -44,13 +44,8 @@ export const deleteFreeTime = async (req, res) => {
 
   try {
     const result = await deleteFreeTimeService(freeTimeId);
-
-    if (result.ER === 1) {
-      return res.status(404).json({ success: false, message: result.message });
-    }
-
-    return res.status(200).json({ success: true, message: result.message });
+    return res.status(200).json({ message: result });
   } catch (error) {
-    return res.status(500).json({ success: false, message: error.message });
+    return res.status(500).json({ message: error.message });
   }
 };

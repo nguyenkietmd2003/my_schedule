@@ -136,7 +136,7 @@ const HomePage = () => {
   const timeZones = ["Asia/Bangkok", "Asia/Kolkata", "Asia/Tokyo"];
 
   const handleTimeZoneChange = (e) => {
-    setSelectedTimeZone(e.target.value); // Cập nhật state khi người dùng chọn múi giờ mới
+    setSelectedTimeZone(e.target.value);
   };
   const handleDateClick = (date) => {
     setSelectedDate(date);
@@ -427,7 +427,7 @@ const HomePage = () => {
     navigate("/");
   };
   const renderSchedules = (date) => {
-    const dateString = date.toLocaleDateString();
+    const dateString = date.toLocaleDateString("vi-VN");
     if (!Array.isArray(apiSchedules)) {
       return <div className=""></div>;
     }
@@ -446,10 +446,11 @@ const HomePage = () => {
           "vi-VN",
           options
         );
-      } else if (schedule.type === "booking" && schedule.free_time_config) {
-        scheduleDate = new Date(
-          schedule.free_time_config.free_time_start
-        ).toLocaleDateString("vi-VN", options);
+      } else if (schedule.type === "booking") {
+        scheduleDate = new Date(schedule.start_time).toLocaleDateString(
+          "vi-VN",
+          options
+        );
       }
       return scheduleDate === dateString;
     });
@@ -486,7 +487,7 @@ const HomePage = () => {
               schedule.status === "pending" ? (
                 <span>{translations["confirm_appointment"]}</span>
               ) : (
-                `${translations.appointment_with} : ${schedule.guest_name}`
+                `${translations.appointment_with}: ${schedule.guest_name}`
               )
             ) : schedule.type === "freeTime" ? (
               `${translations.available}:` +
@@ -526,6 +527,7 @@ const HomePage = () => {
       </div>
     );
   };
+
   const renderCalendar = () => {
     const daysOfWeek = ["CN", "TH 2", "TH 3", "TH 4", "TH 5", "TH 6", "TH 7"];
     const totalDays = daysInMonth(currentMonth, currentYear);
@@ -843,29 +845,31 @@ const HomePage = () => {
                     <span className="font-semibold">
                       {translations["start_time"]}:
                     </span>{" "}
-                    {new Date(
-                      selectedBookings.free_time_config.free_time_start
-                    ).toLocaleString(language === "en" ? "en-US" : "vi-VN", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      day: "2-digit",
-                      month: "2-digit",
-                      year: "numeric",
-                    })}
+                    {new Date(selectedBookings.start_time).toLocaleString(
+                      language === "en" ? "en-US" : "vi-VN",
+                      {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        day: "2-digit",
+                        month: "2-digit",
+                        year: "numeric",
+                      }
+                    )}
                   </p>
                   <p className="text-lg">
                     <span className="font-semibold">
                       {translations["end_time"]}:
                     </span>{" "}
-                    {new Date(
-                      selectedBookings.free_time_config.free_time_end
-                    ).toLocaleString(language === "en" ? "en-US" : "vi-VN", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      day: "2-digit",
-                      month: "2-digit",
-                      year: "numeric",
-                    })}
+                    {new Date(selectedBookings.end_time).toLocaleString(
+                      language === "en" ? "en-US" : "vi-VN",
+                      {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        day: "2-digit",
+                        month: "2-digit",
+                        year: "numeric",
+                      }
+                    )}
                   </p>
                 </div>
               </div>
@@ -897,21 +901,23 @@ const HomePage = () => {
                   <p className="font-semibold text-lg">
                     {translations["time"]}:{" "}
                     <span>
-                      {new Date(
-                        selectedBookings.free_time_config.free_time_start
-                      ).toLocaleString(language === "en" ? "en-US" : "vi-VN", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        second: "2-digit",
-                      })}{" "}
+                      {new Date(selectedBookings.start_time).toLocaleString(
+                        language === "en" ? "en-US" : "vi-VN",
+                        {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          second: "2-digit",
+                        }
+                      )}{" "}
                       -{" "}
-                      {new Date(
-                        selectedBookings.free_time_config.free_time_end
-                      ).toLocaleString(language === "en" ? "en-US" : "vi-VN", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        second: "2-digit",
-                      })}
+                      {new Date(selectedBookings.end_time).toLocaleString(
+                        language === "en" ? "en-US" : "vi-VN",
+                        {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          second: "2-digit",
+                        }
+                      )}
                     </span>
                   </p>
                   <p className="font-semibold text-lg">

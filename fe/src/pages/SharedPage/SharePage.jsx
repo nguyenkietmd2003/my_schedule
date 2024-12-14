@@ -1,11 +1,5 @@
 import { useContext, useEffect, useState } from "react";
-import {
-  booking,
-  bookingg,
-  getInfoByLink,
-  sendOtp,
-  sendOtpBooking,
-} from "../../util/api";
+import { bookingg, getInfoByLink, sendOtpBooking } from "../../util/api";
 import { useParams } from "react-router-dom";
 import "../homepage/homepage1.css";
 import "../homepage/homepage2.css";
@@ -258,11 +252,13 @@ const SharePage = () => {
   const handleSubmitBooking = async (e) => {
     e.preventDefault();
     const newBooking = {
-      free_time_config_id: selectSchedule.id,
+      start_time: selectSchedule.free_time_start,
+      end_time: selectSchedule.free_time_end,
       guest_name: formData.name,
       guest_email: formData.email,
       content: formData.content,
       name_company: formData.company,
+      user_id: selectSchedule.user_id,
       verificationCode: formDataOTP.otp,
     };
     try {
@@ -344,9 +340,6 @@ const SharePage = () => {
       </div>
 
       <div className="grid">{renderCalendar()}</div>
-      {/* <div className="flex justify-center">
-        <div>Chính sách quyền riêng tư và cookies</div>
-      </div> */}
       <div className="bg-gray-100 text-gray-800 py-6 border border-black">
         <div className="container mx-auto px-4">
           <div className="flex flex-wrap justify-between items-center">

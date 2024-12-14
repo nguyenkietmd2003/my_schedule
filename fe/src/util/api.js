@@ -17,10 +17,6 @@ export const getSchedule = (id) => {
   const URL_API = "v1/apiSchedule/get-schedule";
   return axios.get(URL_API, { id });
 };
-export const getScheduleById = (id) => {
-  const URL_API = `/v1/apiSchedule/get-schedule/${id}`;
-  return axios.post(URL_API, { id });
-};
 export const createSchedule = (data) => {
   const URL_API = "v1/apiSchedule/create-schedule";
   return axios.post(URL_API, data);
@@ -34,7 +30,7 @@ export const shareLink = (id) => {
   return axios.post(URL_API);
 };
 export const getInfoByLink = (randomString) => {
-  const URL_API = `/v1/apiSchedule/get-info-by-link/${randomString}`;
+  const URL_API = `/v1/apiSchedule/get-info-by-link2/${randomString}`;
   return axios.post(URL_API);
 };
 export const booking = (data) => {
@@ -45,9 +41,17 @@ export const updateSchedule = (id, data) => {
   const URL_API = `/v1/apiSchedule/update-schedule/${id}`;
   return axios.post(URL_API, data);
 };
+export const getScheduleById = (id) => {
+  const URL_API = `/v1/apiSchedule/get-schedule/${id}`;
+  return axios.post(URL_API, { id });
+};
 export const getBooking = (user_id) => {
   const URL_API = `/v1/apiAppointment/get-booking-by-id/${user_id}`;
   return axios.get(URL_API);
+};
+export const getFreeTimeByUser = (user_id) => {
+  const URL_API = `/v1/apiFreeTime/get-freeTime-by-user`;
+  return axios.post(URL_API, { user_id: user_id });
 };
 export const acceptBooking = (id) => {
   const URL_API = `/v1/apiAppointment/accept-booking/${id}`;
@@ -66,11 +70,6 @@ export const getInfoUser = (user_id) => {
 export const createfreeTime = (data) => {
   const URL_API = "/v1/apiFreeTime/create-freeTime";
   return axios.post(URL_API, data);
-};
-
-export const getFreeTimeByUser = (user_id) => {
-  const URL_API = `/v1/apiFreeTime/get-freeTime-by-user`;
-  return axios.post(URL_API, { user_id: user_id });
 };
 
 export const deleteFreeTime = (freeTimeId) => {
@@ -93,4 +92,19 @@ export const bookingg = (data) => {
 export const sendOtpBooking = (data) => {
   const URL_API = "/v1/apiAppointment/sendotp";
   return axios.post(URL_API, data);
+};
+///
+export const getDefaultSchedule = (id) => {
+  const URL_API = `/v1/apiDefaultSchedule/get-default-schedule/${id}`;
+  return axios.post(URL_API);
+};
+
+export const updateDefaultSchedule = (id, data) => {
+  const URL_API = `/v1/apiDefaultSchedule/update-default-schedule/${id}`;
+  return axios.post(URL_API, data);
+};
+
+export const getIDDefaultSchedule = (id) => {
+  const URL_API = `/v1/apiDefaultSchedule/get-default-schedule-id/${id}`;
+  return axios.post(URL_API);
 };

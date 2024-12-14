@@ -187,6 +187,14 @@ const FreeTimeForm = () => {
           Quay về trang chủ
         </button>
       </form>
+      <div
+        onClick={() => {
+          navigate("/t");
+        }}
+        className="text-center underline hover:text-blue-600"
+      >
+        Cấu hình lịch mặc định
+      </div>
 
       {message && (
         <div

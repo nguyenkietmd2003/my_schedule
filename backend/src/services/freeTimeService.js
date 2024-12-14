@@ -16,72 +16,90 @@ export const getFreeTimeByUserIDService = async (user_id) => {
   }
 };
 export const addFreeTimeService = async (userId, start_time, end_time) => {
-  console.log(userId, start_time, end_time);
-
   try {
+    // Kiểm tra xung đột với các lịch đã đặt trong bảng Booking
+    const conflictingBooking = await model.Booking.findAll({
+      where: {
+        user_id: userId,
+        [Op.or]: [
+          {
+            start_time: { [Op.lt]: end_time }, // Đổi so với `Op.between`
+            end_time: { [Op.gt]: start_time }, // Đổi so với `Op.between`
+          },
+          {
+            [Op.and]: [
+              { start_time: { [Op.lt]: end_time } },
+              { end_time: { [Op.gt]: start_time } },
+            ],
+          },
+        ],
+      },
+    });
+
+    if (conflictingBooking.length > 0) {
+      return { message: "Schedule conflicts with existing schedules", ER: 3 };
+    }
+
+    // Kiểm tra xung đột với các lịch làm việc trong WorkSchedule
     const conflictingSchedules = await model.WorkSchedule.findAll({
       where: {
         user_id: userId,
         [Op.or]: [
           {
-            start_time: {
-              [Op.between]: [start_time, end_time],
-            },
-          },
-          {
-            end_time: {
-              [Op.between]: [start_time, end_time],
-            },
+            start_time: { [Op.lt]: end_time }, // Đổi so với `Op.between`
+            end_time: { [Op.gt]: start_time }, // Đổi so với `Op.between`
           },
           {
             [Op.and]: [
-              { start_time: { [Op.lte]: start_time } },
-              { end_time: { [Op.gte]: end_time } },
+              { start_time: { [Op.lt]: end_time } },
+              { end_time: { [Op.gt]: start_time } },
             ],
           },
         ],
       },
     });
+
     if (conflictingSchedules.length > 0) {
       return { message: "Schedule conflicts with existing schedules", ER: 2 };
     }
+
+    // Kiểm tra xung đột với các cấu hình thời gian rảnh trong FreeTimeConfiguration
     const conflictingFreeTime = await model.FreeTimeConfiguration.findAll({
       where: {
         user_id: userId,
         [Op.or]: [
           {
-            free_time_start: {
-              [Op.between]: [start_time, end_time],
-            },
-          },
-          {
-            free_time_end: {
-              [Op.between]: [start_time, end_time],
-            },
+            free_time_start: { [Op.lt]: end_time }, // Đổi so với `Op.between`
+            free_time_end: { [Op.gt]: start_time }, // Đổi so với `Op.between`
           },
           {
             [Op.and]: [
-              { free_time_start: { [Op.lte]: start_time } },
-              { free_time_end: { [Op.gte]: end_time } },
+              { free_time_start: { [Op.lt]: end_time } },
+              { free_time_end: { [Op.gt]: start_time } },
             ],
           },
         ],
       },
     });
+
     if (conflictingFreeTime.length > 0) {
       return {
         message: "Free Time conflicts with existing free time configurations",
         ER: 1,
       };
     }
+
+    // Tạo cấu hình thời gian rảnh mới
     const newFreeTime = await model.FreeTimeConfiguration.create({
       user_id: userId,
       free_time_start: start_time,
       free_time_end: end_time,
     });
+
     if (!newFreeTime) {
-      return { message: "cannot create new FreeTime configuration" };
+      return { message: "Cannot create new free time configuration" };
     }
+
     return { message: "Thêm lịch rảnh thành công", data: newFreeTime, ER: 0 };
   } catch (error) {
     console.error(error);
@@ -191,17 +209,6 @@ export const updateFreeTimeService = async (
 };
 export const deleteFreeTimeService = async (freeTimeId) => {
   try {
-    const relatedBookings = await model.Booking.findAll({
-      where: { free_time_config_id: freeTimeId },
-    });
-
-    if (relatedBookings.length > 0) {
-      return {
-        message: "Không thể xóa lịch rảnh vì đang được sử dụng trong booking",
-        ER: 1,
-      };
-    }
-
     await model.FreeTimeConfiguration.destroy({
       where: { id: freeTimeId },
     });

@@ -4,6 +4,7 @@ import { createToken } from "./../config/jwt.js";
 import { sendEmail } from "./sendEmailService.js";
 
 let model = initModels(sequelize);
+/////
 
 export const getUserInfoService = async (user_id) => {
   try {
@@ -100,6 +101,27 @@ export const registerServicee = async (email, otp, password, name) => {
       password,
       name,
     });
+    const defaultSchedule = await model.DefaultScheduleConfiguration.create({
+      user_id: newUser.id,
+    });
+    const defaultTimes = [
+      { day_of_week: "Monday", start_time: "09:00:00", end_time: "17:00:00" },
+      { day_of_week: "Tuesday", start_time: "09:00:00", end_time: "17:00:00" },
+      {
+        day_of_week: "Wednesday",
+        start_time: "09:00:00",
+        end_time: "17:00:00",
+      },
+      { day_of_week: "Thursday", start_time: "09:00:00", end_time: "17:00:00" },
+      { day_of_week: "Friday", start_time: "09:00:00", end_time: "17:00:00" },
+      { day_of_week: "Saturday", start_time: "10:00:00", end_time: "14:00:00" },
+      { day_of_week: "Sunday", start_time: "11:00:00", end_time: "15:00:00" },
+    ];
+    const scheduleTimeData = defaultTimes.map((time) => ({
+      default_schedule_id: defaultSchedule.id,
+      ...time, // Trộn các trường `day_of_week`, `start_time`, `end_time`
+    }));
+    await model.DefaultScheduleTime.bulkCreate(scheduleTimeData);
 
     return { message: newUser, ER: 0 };
   } catch (error) {

@@ -1,12 +1,14 @@
 import { Op } from "sequelize";
 import { sequelize } from "../config/database.js";
 import initModels from "../models/init-models.js";
-import { sendEmail } from "./sendEmailService.js";
 let model = initModels(sequelize);
+import { sendEmail } from "./sendEmailService.js";
 //
 
 export const createBookingService = async (
-  free_time_config_id,
+  user_id,
+  start_time,
+  end_time,
   guest_name,
   guest_email,
   content,
@@ -17,18 +19,28 @@ export const createBookingService = async (
     const verificationRecord = await model.EmailVerification.findOne({
       where: { email: guest_email },
     });
+    console.log("check code", verificationCode);
 
     if (!verificationRecord || verificationRecord.code !== verificationCode) {
       return { message: "Mã xác thực không hợp lệ", ER: 1 };
     }
 
     const newBooking = await model.Booking.create({
-      free_time_config_id,
+      user_id,
+      start_time,
+      end_time,
       guest_name,
       guest_email,
       content,
       name_company,
       status: "pending",
+    });
+    await model.FreeTimeConfiguration.destroy({
+      where: {
+        user_id,
+        free_time_start: start_time,
+        free_time_end: end_time,
+      },
     });
 
     return {
@@ -104,11 +116,8 @@ export const rejectBookingServicee = async (id) => {
     booking.status = "rejected";
     await booking.save();
 
-    const getFreeTime = await model.FreeTimeConfiguration.findOne({
-      where: { id: booking.free_time_config_id },
-    });
     const user = await model.User.findOne({
-      where: { id: getFreeTime.user_id },
+      where: { id: booking.user_id },
     });
     await sendEmail(
       user.email,
@@ -138,13 +147,9 @@ export const acceptBookingServicee = async (id) => {
     }
     booking.status = "approved";
     await booking.save();
-    console.log(booking.free_time_config_id);
-    const getFreeTime = await model.FreeTimeConfiguration.findOne({
-      where: { id: booking.free_time_config_id },
-    });
-    // Gửi email thông báo
+
     const user = await model.User.findOne({
-      where: { id: getFreeTime.user_id },
+      where: { id: booking.user_id },
     });
     await sendEmail(
       user.email,
@@ -164,11 +169,7 @@ export const acceptBookingServicee = async (id) => {
 export const getBookingByUserIDService = async (id) => {
   try {
     const bookings = await model.Booking.findAll({
-      include: {
-        model: model.FreeTimeConfiguration,
-        where: { user_id: id },
-        as: "free_time_config",
-      },
+      where: { user_id: id },
     });
     if (!bookings) return { message: "No booking found" };
     return { message: bookings };

@@ -1,7 +1,7 @@
 import _sequelize from 'sequelize';
 const { Model, Sequelize } = _sequelize;
 
-export default class Booking extends Model {
+export default class DefaultScheduleTime extends Model {
   static init(sequelize, DataTypes) {
   return super.init({
     id: {
@@ -10,46 +10,29 @@ export default class Booking extends Model {
       allowNull: false,
       primaryKey: true
     },
-    user_id: {
+    default_schedule_id: {
       type: DataTypes.INTEGER,
       allowNull: false,
       references: {
-        model: 'User',
+        model: 'DefaultScheduleConfiguration',
         key: 'id'
       }
     },
+    day_of_week: {
+      type: DataTypes.ENUM('Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'),
+      allowNull: false
+    },
     start_time: {
-      type: DataTypes.DATE,
+      type: DataTypes.TIME,
       allowNull: false
     },
     end_time: {
-      type: DataTypes.DATE,
+      type: DataTypes.TIME,
       allowNull: false
-    },
-    guest_name: {
-      type: DataTypes.STRING(255),
-      allowNull: false
-    },
-    guest_email: {
-      type: DataTypes.STRING(255),
-      allowNull: false
-    },
-    status: {
-      type: DataTypes.ENUM('pending','approved','rejected'),
-      allowNull: true,
-      defaultValue: "pending"
-    },
-    content: {
-      type: DataTypes.STRING(100),
-      allowNull: true
-    },
-    name_company: {
-      type: DataTypes.STRING(100),
-      allowNull: true
     }
   }, {
     sequelize,
-    tableName: 'Booking',
+    tableName: 'DefaultScheduleTime',
     timestamps: false,
     indexes: [
       {
@@ -61,10 +44,10 @@ export default class Booking extends Model {
         ]
       },
       {
-        name: "user_id_idx",
+        name: "default_schedule_id_idx",
         using: "BTREE",
         fields: [
-          { name: "user_id" },
+          { name: "default_schedule_id" },
         ]
       },
     ]

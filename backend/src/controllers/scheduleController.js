@@ -1,4 +1,7 @@
-import { getScheduleShareLinkService } from "./../services/scheduleService.js";
+import {
+  getScheduleShareLinkService,
+  getScheduleShareLinkServicev2,
+} from "./../services/scheduleService.js";
 import {
   createScheduleService,
   deleteScheduleService,
@@ -92,6 +95,16 @@ export const getInfoShareLink = async (req, res) => {
 
   try {
     const data = await getScheduleShareLinkService(randomString);
+    return res.status(200).json({ status: 200, data });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+export const getInfoShareLinkv2 = async (req, res) => {
+  const { randomString } = req.params;
+
+  try {
+    const data = await getScheduleShareLinkServicev2(randomString);
     return res.status(200).json({ status: 200, data });
   } catch (error) {
     return res.status(500).json({ message: error.message });

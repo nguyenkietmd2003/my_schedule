@@ -12,7 +12,9 @@ import {
 
 export const bookingg = async (req, res) => {
   const {
-    free_time_config_id,
+    user_id,
+    start_time,
+    end_time,
     guest_name,
     guest_email,
     content,
@@ -21,7 +23,9 @@ export const bookingg = async (req, res) => {
   } = req.body;
   try {
     const result = await createBookingService(
-      free_time_config_id,
+      user_id,
+      start_time,
+      end_time,
       guest_name,
       guest_email,
       content,

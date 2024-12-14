@@ -4,6 +4,7 @@ import {
   deleteSchedule,
   getAllSchedule,
   getInfoShareLink,
+  getInfoShareLinkv2,
   getScheduleByID,
   sharedSchedule,
   updateSchedule,
@@ -17,6 +18,7 @@ scheduleRouter.post("/delete-schedule/:id", deleteSchedule);
 // shared Links
 scheduleRouter.post("/shared-schedule/:id", sharedSchedule);
 scheduleRouter.post("/get-info-by-link/:randomString", getInfoShareLink);
+scheduleRouter.post("/get-info-by-link2/:randomString", getInfoShareLinkv2);
 ///----------------------------------------------------------------
 scheduleRouter.post("/create-schedule", createSchedule);
 scheduleRouter.post("/get-schedule/:id", getScheduleByID);

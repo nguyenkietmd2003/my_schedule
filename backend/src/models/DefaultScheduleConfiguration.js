@@ -1,7 +1,7 @@
 import _sequelize from 'sequelize';
 const { Model, Sequelize } = _sequelize;
 
-export default class Booking extends Model {
+export default class DefaultScheduleConfiguration extends Model {
   static init(sequelize, DataTypes) {
   return super.init({
     id: {
@@ -17,39 +17,10 @@ export default class Booking extends Model {
         model: 'User',
         key: 'id'
       }
-    },
-    start_time: {
-      type: DataTypes.DATE,
-      allowNull: false
-    },
-    end_time: {
-      type: DataTypes.DATE,
-      allowNull: false
-    },
-    guest_name: {
-      type: DataTypes.STRING(255),
-      allowNull: false
-    },
-    guest_email: {
-      type: DataTypes.STRING(255),
-      allowNull: false
-    },
-    status: {
-      type: DataTypes.ENUM('pending','approved','rejected'),
-      allowNull: true,
-      defaultValue: "pending"
-    },
-    content: {
-      type: DataTypes.STRING(100),
-      allowNull: true
-    },
-    name_company: {
-      type: DataTypes.STRING(100),
-      allowNull: true
     }
   }, {
     sequelize,
-    tableName: 'Booking',
+    tableName: 'DefaultScheduleConfiguration',
     timestamps: false,
     indexes: [
       {

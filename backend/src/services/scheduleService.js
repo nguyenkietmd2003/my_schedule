@@ -49,20 +49,75 @@ export const createScheduleService = async (data) => {
   }
 
   try {
-    // 1. Kiểm tra lịch đã tồn tại có trùng thời gian không
+    // Kiểm tra sự trùng lặp lịch trong WorkSchedule
     const conflictingSchedules = await model.WorkSchedule.findAll({
       where: {
         user_id: user_id,
         [Op.or]: [
+          // Trùng lặp nếu thời gian bắt đầu hoặc kết thúc của lịch này trùng với lịch cũ
           {
-            start_time: {
-              [Op.between]: [start_time, end_time],
-            },
+            start_time: { [Op.between]: [start_time, end_time] },
           },
           {
-            end_time: {
-              [Op.between]: [start_time, end_time],
-            },
+            end_time: { [Op.between]: [start_time, end_time] },
+          },
+          {
+            [Op.and]: [
+              // Trùng lặp nếu lịch mới bắt đầu trước và kết thúc sau lịch cũ
+              { start_time: { [Op.lte]: start_time } },
+              { end_time: { [Op.gte]: end_time } },
+            ],
+          },
+        ],
+      },
+    });
+
+    // Điều kiện để không tính là trùng lặp nếu StartTime mới == EndTime cũ
+    const noOverlap = conflictingSchedules.filter((schedule) => {
+      return !(
+        new Date(schedule.end_time).getTime() === new Date(start_time).getTime()
+      );
+    });
+
+    if (noOverlap.length > 0) {
+      return { message: "Schedule conflicts with existing schedules", ER: 2 };
+    }
+
+    // Kiểm tra sự trùng lặp với thời gian rảnh trong FreeTimeConfiguration
+    const conflictingFreeTime = await model.FreeTimeConfiguration.findAll({
+      where: {
+        user_id: user_id,
+        [Op.or]: [
+          {
+            free_time_start: { [Op.between]: [start_time, end_time] },
+          },
+          {
+            free_time_end: { [Op.between]: [start_time, end_time] },
+          },
+          {
+            [Op.and]: [
+              { free_time_start: { [Op.lte]: start_time } },
+              { free_time_end: { [Op.gte]: end_time } },
+            ],
+          },
+        ],
+      },
+    });
+
+    if (conflictingFreeTime.length > 0) {
+      return { message: "Schedule conflicts with existing free time", ER: 1 };
+    }
+
+    // Kiểm tra sự trùng lặp với booking trong Booking
+    const conflictingBooking = await model.Booking.findAll({
+      where: {
+        user_id: user_id,
+        [Op.or]: [
+          {
+            start_time: { [Op.between]: [start_time, end_time] },
+          },
+          {
+            end_time: { [Op.between]: [start_time, end_time] },
           },
           {
             [Op.and]: [
@@ -74,10 +129,11 @@ export const createScheduleService = async (data) => {
       },
     });
 
-    if (conflictingSchedules.length > 0) {
-      return { message: "Schedule conflicts with existing schedules" };
+    if (conflictingBooking.length > 0) {
+      return { message: "Booking conflicts with existing bookings", ER: 3 };
     }
 
+    // Tạo lịch mới
     const newSchedule = await model.WorkSchedule.create({
       user_id,
       title,
@@ -91,10 +147,10 @@ export const createScheduleService = async (data) => {
 
     if (!newSchedule) return { message: "Cannot create new schedule" };
 
-    //  Thêm vào bảng Notification nếu notification_time = true
+    // Nếu có thời gian thông báo, tạo thông báo
     if (notification_time) {
       const notificationTime = new Date(start_time);
-      notificationTime.setMinutes(notificationTime.getMinutes() - 5); // Trừ 5 phút từ start_time
+      notificationTime.setMinutes(notificationTime.getMinutes() - 5);
 
       await model.Notification.create({
         work_schedule_id: newSchedule.id,
@@ -112,7 +168,6 @@ export const createScheduleService = async (data) => {
 
 export const updateScheduleService = async (idSchedule, data) => {
   const { user_id, start_time, end_time, title, priority } = data;
-  console.log(idSchedule);
 
   // Kiểm tra thời gian bắt đầu và kết thúc
   if (new Date(start_time) >= new Date(end_time)) {
@@ -129,20 +184,17 @@ export const updateScheduleService = async (idSchedule, data) => {
       return { message: "Schedule not found" };
     }
 
+    // 2. Kiểm tra trùng lặp lịch trong WorkSchedule
     const conflictingSchedules = await model.WorkSchedule.findAll({
       where: {
         user_id: user_id,
-        id: { [Op.ne]: idSchedule },
+        id: { [Op.ne]: idSchedule }, // Không xét lịch hiện tại
         [Op.or]: [
           {
-            start_time: {
-              [Op.between]: [start_time, end_time],
-            },
+            start_time: { [Op.between]: [start_time, end_time] },
           },
           {
-            end_time: {
-              [Op.between]: [start_time, end_time],
-            },
+            end_time: { [Op.between]: [start_time, end_time] },
           },
           {
             [Op.and]: [
@@ -154,10 +206,68 @@ export const updateScheduleService = async (idSchedule, data) => {
       },
     });
 
-    if (conflictingSchedules.length > 0) {
+    // Điều kiện để không tính là trùng lặp nếu StartTime mới == EndTime cũ
+    const noOverlap = conflictingSchedules.filter((schedule) => {
+      return !(
+        new Date(schedule.end_time).getTime() === new Date(start_time).getTime()
+      );
+    });
+
+    if (noOverlap.length > 0) {
       return { message: "Schedule conflicts with existing schedules" };
     }
 
+    // 3. Kiểm tra sự trùng lặp với thời gian rảnh trong FreeTimeConfiguration
+    const conflictingFreeTime = await model.FreeTimeConfiguration.findAll({
+      where: {
+        user_id: user_id,
+        [Op.or]: [
+          {
+            free_time_start: { [Op.between]: [start_time, end_time] },
+          },
+          {
+            free_time_end: { [Op.between]: [start_time, end_time] },
+          },
+          {
+            [Op.and]: [
+              { free_time_start: { [Op.lte]: start_time } },
+              { free_time_end: { [Op.gte]: end_time } },
+            ],
+          },
+        ],
+      },
+    });
+
+    if (conflictingFreeTime.length > 0) {
+      return { message: "Schedule conflicts with existing free time", ER: 1 };
+    }
+
+    // 4. Kiểm tra sự trùng lặp với booking trong Booking
+    const conflictingBooking = await model.Booking.findAll({
+      where: {
+        user_id: user_id,
+        [Op.or]: [
+          {
+            start_time: { [Op.between]: [start_time, end_time] },
+          },
+          {
+            end_time: { [Op.between]: [start_time, end_time] },
+          },
+          {
+            [Op.and]: [
+              { start_time: { [Op.lte]: start_time } },
+              { end_time: { [Op.gte]: end_time } },
+            ],
+          },
+        ],
+      },
+    });
+
+    if (conflictingBooking.length > 0) {
+      return { message: "Schedule conflicts with existing bookings", ER: 3 };
+    }
+
+    // 5. Cập nhật lịch
     const updateSchedule = await checkSchedule.update(data);
     return { message: "Schedule updated successfully", data: updateSchedule };
   } catch (error) {
@@ -250,6 +360,52 @@ export const getScheduleShareLinkService = async (randomString) => {
     }
 
     return { schedule, getUser };
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getScheduleShareLinkServicev2 = async (randomString) => {
+  try {
+    // Tạo URL từ `randomString` và tìm trong bảng `PublicLink`
+    const publicLink = await model.PublicLink.findOne({
+      where: {
+        link: `${
+          process.env.APP_DOMAIN || "http://localhost:5173"
+        }/link-schedule/${randomString}`,
+      },
+    });
+
+    if (!publicLink) {
+      return { message: "Liên kết không hợp lệ hoặc đã hết hạn." };
+    }
+    const getInfoUser = await model.User.findOne({
+      where: { id: publicLink.user_id },
+    });
+
+    const DefaultScheduleID = await model.DefaultScheduleConfiguration.findOne({
+      where: { user_id: publicLink.user_id },
+    });
+    const getDefaultSchedule = await model.DefaultScheduleTime.findAll({
+      where: { default_schedule_id: DefaultScheduleID.id },
+    });
+    const getBookingByUser = await model.Booking.findAll({
+      where: { user_id: publicLink.user_id },
+    });
+    const getScheduleByUser = await model.WorkSchedule.findAll({
+      where: { user_id: publicLink.user_id },
+    });
+    const getFreeTimeByUSer = await model.FreeTimeConfiguration.findAll({
+      where: { user_id: publicLink.user_id },
+    });
+    return {
+      defaultSchedules: getDefaultSchedule,
+      info: getInfoUser.id,
+      booking: getBookingByUser,
+      workSchedules: getScheduleByUser,
+      personalSchedules: getFreeTimeByUSer,
+      ER: 0,
+    };
   } catch (error) {
     throw error;
   }

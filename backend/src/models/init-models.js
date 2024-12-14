@@ -1,6 +1,8 @@
 import _sequelize from "sequelize";
 const DataTypes = _sequelize.DataTypes;
 import _Booking from  "./Booking.js";
+import _DefaultScheduleConfiguration from  "./DefaultScheduleConfiguration.js";
+import _DefaultScheduleTime from  "./DefaultScheduleTime.js";
 import _EmailVerification from  "./EmailVerification.js";
 import _FreeTimeConfiguration from  "./FreeTimeConfiguration.js";
 import _Notification from  "./Notification.js";
@@ -11,6 +13,8 @@ import _WorkSchedule from  "./WorkSchedule.js";
 
 export default function initModels(sequelize) {
   const Booking = _Booking.init(sequelize, DataTypes);
+  const DefaultScheduleConfiguration = _DefaultScheduleConfiguration.init(sequelize, DataTypes);
+  const DefaultScheduleTime = _DefaultScheduleTime.init(sequelize, DataTypes);
   const EmailVerification = _EmailVerification.init(sequelize, DataTypes);
   const FreeTimeConfiguration = _FreeTimeConfiguration.init(sequelize, DataTypes);
   const Notification = _Notification.init(sequelize, DataTypes);
@@ -19,8 +23,12 @@ export default function initModels(sequelize) {
   const User = _User.init(sequelize, DataTypes);
   const WorkSchedule = _WorkSchedule.init(sequelize, DataTypes);
 
-  Booking.belongsTo(FreeTimeConfiguration, { as: "free_time_config", foreignKey: "free_time_config_id"});
-  FreeTimeConfiguration.hasMany(Booking, { as: "Bookings", foreignKey: "free_time_config_id"});
+  DefaultScheduleTime.belongsTo(DefaultScheduleConfiguration, { as: "default_schedule", foreignKey: "default_schedule_id"});
+  DefaultScheduleConfiguration.hasMany(DefaultScheduleTime, { as: "DefaultScheduleTimes", foreignKey: "default_schedule_id"});
+  Booking.belongsTo(User, { as: "user", foreignKey: "user_id"});
+  User.hasMany(Booking, { as: "Bookings", foreignKey: "user_id"});
+  DefaultScheduleConfiguration.belongsTo(User, { as: "user", foreignKey: "user_id"});
+  User.hasMany(DefaultScheduleConfiguration, { as: "DefaultScheduleConfigurations", foreignKey: "user_id"});
   FreeTimeConfiguration.belongsTo(User, { as: "user", foreignKey: "user_id"});
   User.hasMany(FreeTimeConfiguration, { as: "FreeTimeConfigurations", foreignKey: "user_id"});
   Notification.belongsTo(User, { as: "user", foreignKey: "user_id"});
@@ -34,6 +42,8 @@ export default function initModels(sequelize) {
 
   return {
     Booking,
+    DefaultScheduleConfiguration,
+    DefaultScheduleTime,
     EmailVerification,
     FreeTimeConfiguration,
     Notification,

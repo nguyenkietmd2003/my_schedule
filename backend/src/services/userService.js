@@ -47,6 +47,7 @@ export const sendOtpService = async (email) => {
       });
       return { message: "Cập nhật OTP thành công", ER: 1 };
     }
+    await sendEmail(email, `OTP xác nhận đăng ký`, `Mã OTP của bạn là: ${otp}`);
 
     // Nếu không có OTP, tạo OTP mới và lưu vào cơ sở dữ liệu
     const newOtp = await model.OTP.create({

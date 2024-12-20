@@ -400,7 +400,7 @@ export const getScheduleShareLinkServicev2 = async (randomString) => {
     });
     return {
       defaultSchedules: getDefaultSchedule,
-      info: getInfoUser.id,
+      info: getInfoUser,
       booking: getBookingByUser,
       workSchedules: getScheduleByUser,
       personalSchedules: getFreeTimeByUSer,

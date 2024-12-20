@@ -11,6 +11,7 @@ const FreeTimeForm = () => {
   const [endTimeOptions, setEndTimeOptions] = useState([]);
   const [message, setMessage] = useState("");
   const { auth } = useContext(AuthContext);
+  const { translations } = useContext(AuthContext);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -92,9 +93,13 @@ const FreeTimeForm = () => {
       if (result.data.ER === 0) {
         alert("Đã thêm lịch thành công, quay về trang chủ để xem");
       }
+      if (result.data.ER === 2) {
+        alert("Lịch thêm đã tồn tại, vui lòng thử lại");
+      }
       if (result.data.ER === 1) {
         alert("Lịch thêm đã tồn tại, vui lòng thử lại");
       }
+
       setSelectedDate("");
       setStartTime("");
       setEndTime("");
@@ -106,12 +111,12 @@ const FreeTimeForm = () => {
   return (
     <div className="w-full max-w-sm mx-auto p-6 rounded-lg border shadow-md bg-white">
       <h1 className="text-center text-xl font-semibold mb-4">
-        Cấu hình thời gian rảnh
+        {translations.title_free_time}
       </h1>
       <form onSubmit={handleSubmit}>
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700">
-            Chọn ngày:
+            {translations.label}
           </label>
           <input
             type="date"
@@ -126,7 +131,7 @@ const FreeTimeForm = () => {
           <>
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700">
-                Thời gian bắt đầu:
+                {translations.select_start_time}
               </label>
               <select
                 value={startTime}
@@ -138,7 +143,7 @@ const FreeTimeForm = () => {
                 className="mt-2 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="" disabled>
-                  Chọn thời gian bắt đầu
+                  {translations.select_start_time}
                 </option>
                 {timeOptions.map((time, index) => (
                   <option key={index} value={time}>
@@ -150,7 +155,7 @@ const FreeTimeForm = () => {
 
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700">
-                Thời gian kết thúc:
+                {translations.select_end_time}
               </label>
               <select
                 value={endTime}
@@ -160,7 +165,7 @@ const FreeTimeForm = () => {
                 className="mt-2 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="" disabled>
-                  Chọn thời gian kết thúc
+                  {translations.select_end_time}
                 </option>
                 {endTimeOptions.map((time, index) => (
                   <option key={index} value={time}>
@@ -176,7 +181,7 @@ const FreeTimeForm = () => {
           className="bg-blue-600 text-white py-2 px-4 rounded-lg w-full mt-4 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
           type="submit"
         >
-          Thêm
+          {translations.button_add}
         </button>
 
         <button
@@ -184,16 +189,18 @@ const FreeTimeForm = () => {
           type="button"
           onClick={() => navigate("/")}
         >
-          Quay về trang chủ
+          {translations.button_back}
         </button>
       </form>
       <div
         onClick={() => {
-          navigate("/t");
+          navigate("/default-schedule");
         }}
-        className="text-center underline hover:text-blue-600"
+        className="text-center underline hover:text-blue-600 cursor-pointer mt-2
+        
+        "
       >
-        Cấu hình lịch mặc định
+        {translations.config_default}
       </div>
 
       {message && (

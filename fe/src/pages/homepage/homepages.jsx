@@ -45,9 +45,9 @@ const HomePage = () => {
     priority: "",
     notification_time: false,
   });
-  const [selectedTimeZone, setSelectedTimeZone] = useState("Asia/Bangkok"); // Giá trị mặc định là "Asia/Bangkok"
+  const [selectedTimeZone, setSelectedTimeZone] = useState("Asia/Bangkok");
 
-  const [selectedLanguage, setSelectedLanguage] = useState("VN");
+  const [selectedLanguage, setSelectedLanguage] = useState("vn");
   const [link, setLink] = useState("");
   const [isShowLink, setIsShowLink] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);

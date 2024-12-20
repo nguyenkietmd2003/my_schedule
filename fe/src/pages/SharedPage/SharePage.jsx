@@ -12,7 +12,7 @@ const SharePage = () => {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedTimeZone, setSelectedTimeZone] = useState("Asia/Bangkok");
-  const [selectedLanguage, setSelectedLanguage] = useState("VN");
+  const [selectedLanguage, setSelectedLanguage] = useState("en");
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [formData, setFormData] = useState({
@@ -25,39 +25,44 @@ const SharePage = () => {
     otp: null,
   });
   const [isFormVerifyEmail, setIsFormVerifyEmail] = useState(false);
-  const [selectSchedule, setSelectSchedule] = useState(null);
-  const [selectedDate, setSelectedDate] = useState(null);
+  const [selectSchedule, setSelectSchedule] = useState(null); ///////
   const [showModal, setShowModal] = useState(false);
   const [isFormVisible, setIsFormVisible] = useState(false);
-  const [selectedSchedule, setSelectedSchedule] = useState(null);
   const [infoUser, setInfoUser] = useState({
+    id: 0,
     name: "",
     email: "",
   });
-
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isSuccessNotificationVisible, setIsSuccessNotificationVisible] =
     useState(false);
 
   //////
-  const [apiSchedules, setApiSchedules] = useState([]);
   const { randomString } = useParams();
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [defaultSchedules, setDefaultSchedules] = useState([]);
+  const [booking1, setBooking1] = useState([]);
+  const [schedule, setSchedule] = useState([]);
+  const [freeTime, setFreeTime] = useState([]);
+  const [selectedSlots, setSelectedSlots] = useState([]); // Lưu trữ các slot lịch cho ngày đã chọn
+
   useEffect(() => {
     const fetchData = async () => {
       try {
         const data = await getInfoByLink(randomString);
+        setBooking1(data?.data.booking);
+        setDefaultSchedules(data?.data?.defaultSchedules);
+        setSchedule(data?.data?.workSchedules);
+        setFreeTime(data?.data?.personalSchedules);
+        setInfoUser(data?.data?.info);
         console.log(data);
-        const schedule = data?.data?.schedule || [];
-        const userInfo = data?.data?.getUser || null;
-        console.log(userInfo);
-        setApiSchedules(schedule);
-        setInfoUser(userInfo);
       } catch (error) {
         console.log(error);
       }
     };
     fetchData();
-  }, []);
+    console.log("Updated selected slots:", selectedSlots);
+  }, [selectedSlots]);
 
   const goToPreviousMonth = () => {
     if (currentMonth === 0) {
@@ -95,95 +100,13 @@ const SharePage = () => {
     return new Date(year, month + 1, 0).getDate();
   };
 
-  const renderCalendar = () => {
-    const daysOfWeek = ["CN", "TH 2", "TH 3", "TH 4", "TH 5", "TH 6", "TH 7"];
-    const totalDays = daysInMonth(currentMonth, currentYear);
-    const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
-    const startDay = firstDayOfMonth.getDay();
-    const calendarDays = [];
-
-    // Lấy ngày hiện tại
-    const today = new Date();
-    const todayDate = today.getDate();
-    const todayMonth = today.getMonth();
-    const todayYear = today.getFullYear();
-
-    // Lọc các ngày có lịch trình
-    const scheduledDays = getScheduledDays();
-
-    // Render tiêu đề các ngày trong tuần
-    calendarDays.push(
-      ...daysOfWeek.map((day, index) => (
-        <div key={`day-${index}`} className="day header-day">
-          {day}
-        </div>
-      ))
-    );
-
-    // Các ngày từ tháng trước (ô trống đầu lịch)
-    for (let i = startDay; i > 0; i--) {
-      const lastMonthDate = new Date(currentYear, currentMonth, 0);
-      calendarDays.push(
-        <div key={`empty-${i}`} className="day empty">
-          {`${lastMonthDate.getDate() - i + 1}/${lastMonthDate.getMonth() + 1}`}
-        </div>
-      );
-    }
-
-    // Các ngày trong tháng hiện tại
-    for (let i = 1; i <= totalDays; i++) {
-      const currentDate = new Date(currentYear, currentMonth, i);
-
-      // Kiểm tra nếu là ngày hiện tại
-      const isToday =
-        currentDate.getDate() === todayDate &&
-        currentDate.getMonth() === todayMonth &&
-        currentDate.getFullYear() === todayYear;
-
-      // Kiểm tra xem ngày có lịch trình không
-      const isScheduledDay = scheduledDays.includes(
-        currentDate.toLocaleDateString()
-      );
-
-      calendarDays.push(
-        <div
-          key={currentDate.toISOString()}
-          className={`day ${isToday ? "today" : ""} ${
-            isScheduledDay ? "has-schedule" : ""
-          }`}
-          onClick={isScheduledDay ? () => handleDayClick(currentDate) : null}
-        >
-          {currentDate.getDate()}
-        </div>
-      );
-    }
-
-    // Các ngày từ tháng sau (ô trống cuối lịch)
-    const remainingDays = (7 - ((totalDays + startDay) % 7)) % 7;
-    for (let i = 1; i <= remainingDays; i++) {
-      const nextMonthDate = new Date(currentYear, currentMonth + 1, i);
-      calendarDays.push(
-        <div key={`next-month-${i}`} className="day empty">
-          {`${nextMonthDate.getDate()} thg ${nextMonthDate.getMonth() + 1}`}
-        </div>
-      );
-    }
-
-    return calendarDays;
-  };
-  const handleDayClick = (date) => {
-    // Lọc các lịch trình cho ngày đã chọn
-    const daySchedules = apiSchedules.filter((schedule) => {
-      const scheduleStartDate = new Date(
-        schedule.free_time_start
-      ).toLocaleDateString(); // Chuyển đổi ngày bắt đầu
-      return scheduleStartDate === date.toLocaleDateString(); // So sánh ngày
-    });
-    console.log(daySchedules);
+  const handleDayClick = (date, schedules) => {
+    const selectedSlots = generateSlotsForDay(date, schedules);
+    console.log(selectedSlots);
     console.log(date);
-
-    setSelectedDate(date); // Lưu ngày được chọn
-    setSelectedSchedule(daySchedules); // Lưu lịch trình cho ngày đó
+    console.log(schedules);
+    setSelectedDate(date);
+    setSelectedSlots(selectedSlots);
     setShowModal(true); // Hiển thị modal
   };
   const closeModal = () => {
@@ -195,27 +118,6 @@ const SharePage = () => {
     setSelectSchedule(schedule);
     // Xử lý khi người dùng chọn một lịch trình, ví dụ: Đặt lịch, thông báo, v.v.
     closeModal(); // Đóng modal sau khi chọn
-  };
-  // Hàm lấy danh sách các ngày có lịch trình
-  const getScheduledDays = () => {
-    // Ngày hiện tại theo định dạng địa phương
-    const today = new Date();
-
-    // Kiểm tra xem apiSchedules có phải là một mảng không
-    if (!Array.isArray(apiSchedules)) {
-      return [];
-    }
-
-    // Lọc lịch trình theo ngày
-    const scheduledDays = apiSchedules.map((schedule) => {
-      const scheduleStartDate = new Date(
-        schedule.free_time_start
-      ).toLocaleDateString();
-      return scheduleStartDate;
-    });
-
-    // Loại bỏ các ngày trùng lặp
-    return [...new Set(scheduledDays)];
   };
 
   const resetForm = () => {
@@ -252,24 +154,30 @@ const SharePage = () => {
   const handleSubmitBooking = async (e) => {
     e.preventDefault();
     const newBooking = {
-      start_time: selectSchedule.free_time_start,
-      end_time: selectSchedule.free_time_end,
+      start_time: selectSchedule.start,
+      end_time: selectSchedule.end,
       guest_name: formData.name,
       guest_email: formData.email,
       content: formData.content,
       name_company: formData.company,
-      user_id: selectSchedule.user_id,
+      user_id: infoUser.id,
       verificationCode: formDataOTP.otp,
     };
     try {
-      console.log("bookig", newBooking);
+      console.log("booking", newBooking);
       const result = await bookingg(newBooking);
       console.log(result);
       if (result.data.ER == 0) {
+        // Cập nhật lại selectedSlots để loại bỏ slot đã được chọn
+        setSelectedSlots((prevSlots) =>
+          prevSlots.filter((slot) => slot.id !== selectSchedule.id)
+        );
+
+        // Reset form sau khi đặt lịch thành công
         resetForm();
         setIsSuccessNotificationVisible(true);
       } else {
-        alert("Mã sác thực không đúng");
+        alert("Mã xác thực không đúng");
       }
     } catch (error) {
       console.error("Lỗi khi tạo lịch làm việc:", error);
@@ -298,6 +206,225 @@ const SharePage = () => {
   const timeZones = ["Asia/Bangkok", "Asia/Kolkata", "Asia/Tokyo"];
   const handleTimeZoneChange = (e) => {
     setSelectedTimeZone(e.target.value); // Cập nhật state khi người dùng chọn múi giờ mới
+  };
+  ///////////////////////////////////////////////////////////////////////////
+  const renderCalendar = () => {
+    const daysOfWeek = ["CN", "TH 2", "TH 3", "TH 4", "TH 5", "TH 6", "TH 7"];
+    const totalDays = daysInMonth(currentMonth, currentYear);
+    const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
+    const startDay = firstDayOfMonth.getDay();
+    const calendarDays = [];
+
+    // Lấy ngày hiện tại
+    const today = new Date();
+    const todayDate = today.getDate();
+    const todayMonth = today.getMonth();
+    const todayYear = today.getFullYear();
+
+    // Lọc các ngày có lịch trình
+    const mergedSchedules = mergeSchedules(defaultSchedules, freeTime);
+
+    // Render tiêu đề các ngày trong tuần
+    calendarDays.push(
+      ...daysOfWeek.map((day, index) => (
+        <div key={`day-${index}`} className="day header-day">
+          {day}
+        </div>
+      ))
+    );
+
+    // Các ngày từ tháng trước (ô trống đầu lịch)
+    for (let i = startDay; i > 0; i--) {
+      const lastMonthDate = new Date(currentYear, currentMonth, 0);
+      calendarDays.push(
+        <div key={`empty-${i}`} className="day empty">
+          {`${lastMonthDate.getDate() - i + 1}/${lastMonthDate.getMonth() + 1}`}
+        </div>
+      );
+    }
+
+    // Các ngày trong tháng hiện tại
+    for (let i = 1; i <= totalDays; i++) {
+      const currentDate = new Date(currentYear, currentMonth, i);
+
+      // Kiểm tra nếu là ngày hiện tại
+      const isToday =
+        currentDate.getDate() === todayDate &&
+        currentDate.getMonth() === todayMonth &&
+        currentDate.getFullYear() === todayYear;
+
+      // Kiểm tra xem ngày có lịch trình không
+      const isScheduledDay = mergedSchedules.some((schedule) => {
+        const scheduleStart = new Date(schedule.free_time_start);
+        const scheduleEnd = new Date(schedule.free_time_end);
+        return currentDate >= scheduleStart && currentDate <= scheduleEnd;
+      });
+      calendarDays.push(
+        <div
+          key={currentDate.toISOString()}
+          className={`day ${isToday ? "today" : ""} ${
+            isScheduledDay ? "none" : ""
+          }`}
+          onClick={() => handleDayClick(currentDate, mergedSchedules)}
+        >
+          {currentDate.getDate()}
+        </div>
+      );
+    }
+
+    // Các ngày từ tháng sau (ô trống cuối lịch)
+    const remainingDays = (7 - ((totalDays + startDay) % 7)) % 7;
+    for (let i = 1; i <= remainingDays; i++) {
+      const nextMonthDate = new Date(currentYear, currentMonth + 1, i);
+      calendarDays.push(
+        <div key={`next-month-${i}`} className="day empty">
+          {`${nextMonthDate.getDate()} thg ${nextMonthDate.getMonth() + 1}`}
+        </div>
+      );
+    }
+
+    return calendarDays;
+  };
+  ////////////////////////////////////////////////////////////////////////////////
+  const generateSlotsForDay = (date) => {
+    const slots = [];
+
+    // Lấy tên ngày trong tuần từ ngày hiện tại
+    const dayOfWeek = date.toLocaleDateString("en-US", { weekday: "long" });
+
+    // Lọc lịch theo tên ngày trong tuần
+    const selectedSchedules = defaultSchedules.filter(
+      (schedule) => schedule.day_of_week === dayOfWeek
+    );
+
+    // Kiểm tra lịch cá nhân cho ngày đã chọn
+    const personalForDay = freeTime.filter((schedule) => {
+      const scheduleStart = new Date(schedule.free_time_start);
+      return (
+        date.toISOString().split("T")[0] ===
+        scheduleStart.toISOString().split("T")[0]
+      );
+    });
+
+    const finalSchedules =
+      personalForDay.length > 0 ? personalForDay : selectedSchedules;
+
+    // Gộp tất cả các booking và schedule để kiểm tra
+    const allBookingsAndSchedules = [
+      ...booking1.map((b) => ({
+        start: new Date(b.start_time),
+        end: new Date(b.end_time),
+      })),
+      ...schedule.map((s) => ({
+        start: new Date(s.start_time),
+        end: new Date(s.end_time),
+      })),
+    ];
+
+    // Tạo các slot từ lịch đã chọn
+    finalSchedules.forEach((schedule) => {
+      let start;
+      let end;
+
+      if (schedule.start_time && schedule.end_time) {
+        const [startHour, startMinute] = schedule.start_time
+          .split(":")
+          .map(Number);
+        const [endHour, endMinute] = schedule.end_time.split(":").map(Number);
+        start = new Date(
+          date.getFullYear(),
+          date.getMonth(),
+          date.getDate(),
+          startHour,
+          startMinute
+        );
+        end = new Date(
+          date.getFullYear(),
+          date.getMonth(),
+          date.getDate(),
+          endHour,
+          endMinute
+        );
+      } else {
+        start = new Date(schedule.free_time_start);
+        end = new Date(schedule.free_time_end);
+      }
+
+      while (start < end) {
+        const slotEnd = new Date(start.getTime() + 30 * 60000); // Tăng 30 phút
+        if (slotEnd <= end) {
+          // Kiểm tra xem slot có bị trùng với booking hoặc schedule không
+          const isBookedOrScheduled = allBookingsAndSchedules.some((item) => {
+            return (
+              (start >= item.start && start < item.end) ||
+              (slotEnd > item.start && slotEnd <= item.end)
+            );
+          });
+
+          if (!isBookedOrScheduled) {
+            slots.push({
+              id: `${start.toISOString()}-${slotEnd.toISOString()}`,
+              start: start,
+              end: slotEnd,
+            });
+          }
+        }
+        start = slotEnd;
+      }
+    });
+
+    return slots;
+  };
+
+  const mergeSchedules = (defaultSchedules, freeTime) => {
+    const allSchedules = [];
+
+    // Gộp lịch mặc định
+    defaultSchedules.forEach((schedule) => {
+      const today = new Date();
+      const currentDay = today.getDay(); // 0: CN, 1: Thứ 2, ...
+      const dayOffset = (schedule.day_of_week - currentDay + 7) % 7;
+
+      const scheduleDate = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate() + dayOffset
+      );
+
+      const [startHour, startMinute] = schedule.start_time
+        .split(":")
+        .map(Number);
+      const [endHour, endMinute] = schedule.end_time.split(":").map(Number);
+
+      allSchedules.push({
+        free_time_start: new Date(
+          scheduleDate.getFullYear(),
+          scheduleDate.getMonth(),
+          scheduleDate.getDate(),
+          startHour,
+          startMinute
+        ),
+        free_time_end: new Date(
+          scheduleDate.getFullYear(),
+          scheduleDate.getMonth(),
+          scheduleDate.getDate(),
+          endHour,
+          endMinute
+        ),
+      });
+    });
+    // Gộp lịch cá nhân
+    freeTime.forEach((schedule) => {
+      const start = new Date(schedule.free_time_start);
+      const end = new Date(schedule.free_time_end);
+
+      allSchedules.push({
+        free_time_start: start,
+        free_time_end: end,
+      });
+    });
+
+    return allSchedules;
   };
 
   return (
@@ -380,7 +507,7 @@ const SharePage = () => {
               />
             </div>
             <div className="form-input">
-              <div className="font-bold text-xl">Tên của bạn</div>
+              <div className="font-bold text-xl">{translations.name}</div>
               <label className="title-input">
                 <input
                   type="text"
@@ -402,7 +529,10 @@ const SharePage = () => {
                 />
               </label>
 
-              <div className="font-bold text-xl"> Nội dung cuộc họp</div>
+              <div className="font-bold text-xl">
+                {" "}
+                {translations.task_content}
+              </div>
               <label className="title-input">
                 <input
                   type="text"
@@ -412,7 +542,9 @@ const SharePage = () => {
                   required
                 />
               </label>
-              <div className="font-bold text-xl">Tên Công Ty</div>
+              <div className="font-bold text-xl">
+                {translations.name_company}
+              </div>
               <label className="title-input">
                 <input
                   type="text"
@@ -439,7 +571,9 @@ const SharePage = () => {
               />
             </div>
             <div className="form-input">
-              <div className="font-bold text-xl">Xác thực OTP</div>
+              <div className="font-bold text-xl">
+                {translations.otp_verification}
+              </div>
               <label className="title-input">
                 <input
                   type="number"
@@ -459,8 +593,8 @@ const SharePage = () => {
       {isSuccessNotificationVisible && (
         <div className="notification-success">
           <div className="notification-success-content">
-            <p>Bạn đã đặt lịch thành công</p>
-            <p>Chờ phê duyệt nhé!</p>
+            <p>{translations.booking_successful}</p>
+            <p>{translations.waiting_for_approval}</p>
             <button onClick={() => setIsSuccessNotificationVisible(false)}>
               OK
             </button>
@@ -476,12 +610,12 @@ const SharePage = () => {
             {selectSchedule && (
               <div>
                 <p>
-                  <strong>Lịch Rảnh</strong>
+                  <strong>{translations.free_schedule}</strong>
                 </p>
 
                 <p>
-                  <strong>Thời gian bắt đầu:</strong>{" "}
-                  {new Date(selectSchedule.free_time_start).toLocaleString([], {
+                  <strong>{translations.start_time}</strong>{" "}
+                  {new Date(selectSchedule.start).toLocaleString([], {
                     hour: "2-digit",
                     minute: "2-digit",
                     day: "2-digit",
@@ -490,8 +624,8 @@ const SharePage = () => {
                   })}
                 </p>
                 <p>
-                  <strong>Thời gian kết thúc:</strong>{" "}
-                  {new Date(selectSchedule.free_time_end).toLocaleString([], {
+                  <strong>{translations.end_time}</strong>{" "}
+                  {new Date(selectSchedule.end).toLocaleString([], {
                     hour: "2-digit",
                     minute: "2-digit",
                     day: "2-digit",
@@ -513,10 +647,12 @@ const SharePage = () => {
       {isModalOpen && (
         <div className="modal">
           <div className="modal-content">
-            <h2>Thông tin người dùng</h2>
+            <h2>{translations.userInfo}</h2>
             {infoUser ? (
               <ul>
-                <li>Tên: {infoUser.name}</li>
+                <li>
+                  {translations.name}: {infoUser.name}
+                </li>
                 <li>Email: {infoUser.email}</li>
               </ul>
             ) : (
@@ -526,7 +662,7 @@ const SharePage = () => {
               className="rounded border font-bold bg-blue-400 px-4 py-2 mt-4"
               onClick={closeModalUser}
             >
-              Đóng
+              {translations.close}
             </button>
           </div>
         </div>
@@ -539,34 +675,22 @@ const SharePage = () => {
               ×
             </span>
             <h3>
-              Lựa chọn thời gian rảnh cho ngày{" "}
+              {`${translations.choose_free_time}   `}
               {selectedDate.toLocaleDateString()}
             </h3>
-            {selectedSchedule.length === 0 ? (
-              <p>Không có lịch trình nào cho ngày này.</p>
+            {selectedSlots.length === 0 ? (
+              <p>{translations.no_schedule_for_day}</p>
             ) : (
               <div>
-                {selectedSchedule.map((schedule) => (
+                {selectedSlots.map((slot) => (
                   <div
-                    key={schedule.id}
+                    key={slot.id}
                     className="schedule-option px-4 py-2 bg-blue-500 text-white rounded-lg shadow-md cursor-pointer hover:bg-blue-600 w-fit"
-                    onClick={() => handleScheduleSelect(schedule)}
+                    onClick={() => handleScheduleSelect(slot)}
                   >
-                    {`${new Date(schedule.free_time_start).toLocaleTimeString(
-                      "vi-VN",
-                      {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        timeZone: selectedTimeZone, // Áp dụng múi giờ được chọn
-                      }
-                    )} - ${new Date(schedule.free_time_end).toLocaleTimeString(
-                      "vi-VN",
-                      {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        timeZone: selectedTimeZone, // Áp dụng múi giờ được chọn
-                      }
-                    )}`}
+                    {`${new Date(slot.start).toLocaleTimeString()} - ${new Date(
+                      slot.end
+                    ).toLocaleTimeString()}`}
                   </div>
                 ))}
               </div>

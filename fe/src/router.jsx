@@ -8,9 +8,7 @@ import SharedPage from "./pages/SharedPage/SharePage";
 import ProtectedRoute from "./util/protectedRoute.jsx";
 import VerifyPage from "./pages/verifyPage/verifyPage.jsx";
 import FreeTimeForm from "./pages/freeTimePage/freeTimePage.jsx";
-import TestPage from "./pages/test.jsx";
-import AB from "./pages/test2.jsx";
-import AP from "./pages/test3.jsx";
+import DefaultSchedule from "./pages/freeTimePage/DefaultSchedule.jsx";
 
 export const router = createBrowserRouter([
   {
@@ -44,15 +42,7 @@ export const router = createBrowserRouter([
     element: <SharedPage />,
   },
   {
-    path: "t",
-    element: <TestPage />,
-  },
-  {
-    path: "tt",
-    element: <AB />,
-  },
-  {
-    path: "ttt",
-    element: <AP />,
+    path: "default-schedule",
+    element: <DefaultSchedule />,
   },
 ]);

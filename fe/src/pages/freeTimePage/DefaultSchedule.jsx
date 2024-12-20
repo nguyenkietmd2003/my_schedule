@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { Link } from "react-router-dom";
 import {
   getDefaultSchedule,
   getIDDefaultSchedule,
   updateDefaultSchedule,
-} from "../util/api";
+} from "../../util/api";
+import { AuthContext } from "../../context/wrapContext";
 
 const days = [
   "Sunday",
@@ -43,7 +44,7 @@ const formatTimeToAMPM = (timeStr) => {
   return `${formattedHours}:${formattedMinutes} ${period}`;
 };
 
-const TestPage = () => {
+const DefaultSchedule = () => {
   const [apiSchedule, setApiSchedule] = useState([]); // Lưu dữ liệu API
   const [defaultScheduleId, setDefaultScheduleId] = useState(0);
   const timeOptions = populateTimeOptions();
@@ -114,31 +115,6 @@ const TestPage = () => {
   useEffect(() => {
     fetchScheduleFromAPI();
   }, []);
-  const updateScheduleToAPI = async (updatedDays) => {
-    try {
-      const getInfo = localStorage.getItem("info");
-      const user = JSON.parse(getInfo);
-
-      // Gọi hàm updateDefaultSchedule với thông tin cần thiết
-      const response = await updateDefaultSchedule(
-        user?.data?.user?.id,
-        updatedDays
-      );
-      console.log(response);
-
-      // Kiểm tra response
-      if (response?.status !== 200 || response?.data?.ER !== 0) {
-        throw new Error(response?.data?.message || "Failed to update schedule");
-      }
-
-      alert(response.data.message || "Schedule updated successfully!");
-      return updatedDays; // Trả về lịch cập nhật (giả định API không trả về lịch mới)
-    } catch (error) {
-      console.error("Error updating schedule:", error);
-      alert(error.message || "Error updating schedule. Please try again.");
-      return null;
-    }
-  };
 
   const handleStartTimeChange = (dayIndex, selectedStartTime) => {
     const newSchedule = [...schedule];
@@ -179,26 +155,26 @@ const TestPage = () => {
   const handleSubmit = async () => {
     let validationErrors = [];
 
-    const selectedDays = schedule
-      .filter((item) => item.active) // Chỉ lọc các ngày active
-      .map((item, index) => {
+    const selectedDays = schedule.reduce((acc, item, index) => {
+      if (item.active) {
         if (!item.start || !item.end) {
           validationErrors.push(`Bạn chưa chọn giờ cho ${days[index]}.`);
-          return null; // Nếu thời gian không hợp lệ, trả về null
+          return acc; // Bỏ qua nếu dữ liệu không hợp lệ
         }
 
         // Chuyển đổi start_time và end_time sang định dạng 24 giờ
         const startTime24 = formatTimeTo24Hours(item.start);
         const endTime24 = formatTimeTo24Hours(item.end);
 
-        return {
-          default_schedule_id: defaultScheduleId, // Thêm `default_schedule_id`
-          day_of_week: days[index], // Lấy tên ngày
-          start_time: startTime24, // Đã chuyển đổi
-          end_time: endTime24, // Đã chuyển đổi
-        };
-      })
-      .filter(Boolean); // Loại bỏ các giá trị null (ngày không hợp lệ)
+        acc.push({
+          default_schedule_id: defaultScheduleId,
+          day_of_week: days[index], // Lấy đúng ngày từ chỉ mục
+          start_time: startTime24,
+          end_time: endTime24,
+        });
+      }
+      return acc; // Trả về danh sách hợp lệ
+    }, []); //ại bỏ các giá trị null (ngày không hợp lệ)
 
     // Hiển thị lỗi nếu có
     if (validationErrors.length > 0) {
@@ -212,6 +188,7 @@ const TestPage = () => {
     try {
       // Gửi request đến backend
       const response = await updateDefaultSchedule(userId, payload);
+      console.log(payload);
       console.log("Response:", response);
 
       // Kiểm tra phản hồi từ API
@@ -358,7 +335,7 @@ const TestPage = () => {
             className="text-xs text-center text-gray-600 underline cursor-pointer"
             to={"/"}
           >
-            Quay về trang chủ
+            Back to home
           </Link>
         </div>
       </div>
@@ -366,4 +343,4 @@ const TestPage = () => {
   );
 };
 
-export default TestPage;
+export default DefaultSchedule;
